@@ -1,0 +1,44 @@
+{
+  "type": "FeatureCollection",
+  "name": "Pune Municipal Corporation Boundary",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Pune Municipal Corporation",
+        "state": "Maharashtra",
+        "source": "Simplified approximation — replace with DataMeet PMC ward-union polygon for production",
+        "source_url": "https://github.com/datameet/Municipal_Spatial_Data"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [73.7570, 18.4570],
+            [73.7390, 18.4850],
+            [73.7400, 18.5200],
+            [73.7540, 18.5500],
+            [73.7700, 18.5740],
+            [73.7960, 18.5920],
+            [73.8250, 18.6030],
+            [73.8570, 18.6050],
+            [73.8900, 18.5980],
+            [73.9170, 18.5830],
+            [73.9380, 18.5600],
+            [73.9500, 18.5350],
+            [73.9520, 18.5050],
+            [73.9450, 18.4780],
+            [73.9300, 18.4560],
+            [73.9100, 18.4400],
+            [73.8850, 18.4330],
+            [73.8550, 18.4320],
+            [73.8250, 18.4350],
+            [73.7950, 18.4400],
+            [73.7700, 18.4470],
+            [73.7570, 18.4570]
+          ]
+        ]
+      }
+    }
+  ]
+}

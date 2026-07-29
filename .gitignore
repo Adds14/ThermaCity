@@ -1,0 +1,50 @@
+# ─── Python ───
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+
+# ─── ML artifacts (large files) ───
+ml/models/*.joblib
+ml/data/*.csv
+ml/data/*.geojson
+
+# ─── GEE exports ───
+gee/exports/
+
+# ─── Environment & secrets ───
+.env
+*.pem
+*.key
+service-account*.json
+
+# ─── Database ───
+pgdata/
+
+# ─── Node / Frontend ───
+node_modules/
+frontend/dist/
+frontend/.env
+
+# ─── IDE ───
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ─── OS ───
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Docker ───
+docker-compose.override.yml
+
+# ─── Jupyter ───
+.ipynb_checkpoints/

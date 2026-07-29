@@ -1,0 +1,9 @@
+# ─── Google Earth Engine Pipeline ───
+earthengine-api>=1.4.0
+google-auth>=2.0.0
+
+# ─── Grid Generation & Spatial Ops ───
+shapely>=2.0.0
+geopandas>=1.0.0
+pandas>=2.0.0
+numpy>=1.26.0

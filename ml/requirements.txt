@@ -1,0 +1,13 @@
+# ─── Core ML ───
+scikit-learn==1.7.0
+pandas==2.3.0
+numpy==2.3.0
+joblib==1.5.1
+
+# ─── Visualization (notebooks) ───
+matplotlib==3.10.3
+seaborn==0.13.2
+
+# ─── Jupyter (EDA notebooks) ───
+jupyterlab==4.4.3
+ipykernel==6.29.5
