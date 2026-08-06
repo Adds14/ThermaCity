@@ -1,0 +1,170 @@
+"""
+ThermaCity — Community Reports Router
+
+Endpoints for submitting and retrieving crowdsourced heat vulnerability reports.
+"""
+
+import logging
+
+from fastapi import APIRouter, Depends, Query, HTTPException, status
+from sqlalchemy import select, desc
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from app.database import get_db
+from app.models.community_report import CommunityReport
+from app.models.spatial_grid import SpatialGrid
+from app.models.ward_boundary import WardBoundary
+from app.schemas.report import ReportCreate, ReportResponse
+from app.services.geojson_builder import build_feature_collection
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/reports", tags=["Community Reports"])
+
+
+@router.post("", response_model=ReportResponse, status_code=status.HTTP_201_CREATED)
+async def submit_report(
+    payload: ReportCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Submit a new community report.
+
+    Expects a latitude/longitude point. The backend automatically performs a
+    spatial query to assign this point to the correct 100x100m grid cell
+    and municipal ward using PostGIS `ST_Contains`.
+    """
+    from geoalchemy2.elements import WKTElement
+
+    # Create a Point geometry from lat/lng
+    point_wkt = f"SRID=4326;POINT({payload.longitude} {payload.latitude})"
+    point_geom = WKTElement(point_wkt, srid=4326)
+
+    report = CommunityReport(
+        category=payload.category,
+        description=payload.description,
+        severity=payload.severity,
+        reporter_name=payload.reporter_name,
+        geom=point_geom,
+    )
+
+    db.add(report)
+    await db.flush()  # To assign spatial ID and let triggers run if any, or we query below
+
+    # Perform ST_Contains to assign ward_id
+    ward_stmt = select(WardBoundary.id).where(
+        WardBoundary.geom.ST_Contains(point_geom)
+    )
+    ward_result = await db.execute(ward_stmt)
+    ward_id = ward_result.scalar_one_or_none()
+    
+    if ward_id:
+        report.ward_id = ward_id
+
+    # Perform ST_Contains to assign grid_id
+    grid_stmt = select(SpatialGrid.id).where(
+        SpatialGrid.geom.ST_Contains(point_geom)
+    )
+    grid_result = await db.execute(grid_stmt)
+    grid_id = grid_result.scalar_one_or_none()
+
+    if grid_id:
+        report.grid_id = grid_id
+
+    await db.commit()
+    await db.refresh(report)
+
+    # Fetch with relationships for response
+    stmt = (
+        select(CommunityReport)
+        .where(CommunityReport.id == report.id)
+        .options(
+            selectinload(CommunityReport.ward),
+            selectinload(CommunityReport.grid_cell)
+        )
+    )
+    result = await db.execute(stmt)
+    report_loaded = result.scalar_one()
+
+    return _to_response(report_loaded)
+
+
+@router.get("")
+async def list_reports(
+    category: str | None = Query(None, description="Filter by report category"),
+    ward_id: int | None = Query(None, description="Filter by ward ID"),
+    limit: int = Query(100, ge=1, le=1000),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    List community reports as a GeoJSON FeatureCollection.
+    """
+    stmt = select(CommunityReport).options(
+        selectinload(CommunityReport.ward),
+        selectinload(CommunityReport.grid_cell)
+    ).order_by(desc(CommunityReport.created_at))
+
+    if category:
+        stmt = stmt.where(CommunityReport.category == category)
+    if ward_id:
+        stmt = stmt.where(CommunityReport.ward_id == ward_id)
+
+    stmt = stmt.limit(limit)
+    result = await db.execute(stmt)
+    rows = result.scalars().all()
+
+    features = []
+    for row in rows:
+        props = {
+            "id": row.id,
+            "category": row.category,
+            "description": row.description,
+            "severity": row.severity,
+            "reporter_name": row.reporter_name,
+            "created_at": row.created_at.isoformat() if row.created_at else None,
+            "ward_name": row.ward.ward_name if row.ward else None,
+            "cell_code": row.grid_cell.cell_code if row.grid_cell else None,
+        }
+        
+        # Parse point
+        try:
+            from geoalchemy2.shape import to_shape
+            from shapely.geometry import mapping
+            geom_dict = mapping(to_shape(row.geom))
+        except Exception:
+            geom_dict = None
+
+        features.append({
+            "type": "Feature",
+            "geometry": geom_dict,
+            "properties": props
+        })
+
+    return {
+        "type": "FeatureCollection",
+        "features": features
+    }
+
+
+def _to_response(report: CommunityReport) -> ReportResponse:
+    # Helper to extract lat/lng and map to Pydantic schema
+    try:
+        from geoalchemy2.shape import to_shape
+        pt = to_shape(report.geom)
+        lon, lat = pt.x, pt.y
+    except Exception:
+        lon, lat = 0.0, 0.0
+
+    return ReportResponse(
+        id=report.id,
+        category=report.category,
+        description=report.description,
+        severity=report.severity,
+        reporter_name=report.reporter_name,
+        created_at=report.created_at,
+        latitude=lat,
+        longitude=lon,
+        ward_name=report.ward.ward_name if report.ward else None,
+        cell_code=report.grid_cell.cell_code if report.grid_cell else None,
+    )
