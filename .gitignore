@@ -22,6 +22,9 @@ gee/exports/
 *.pem
 *.key
 service-account*.json
+credentials/
+*-key.json
+*efed*.json
 
 # ─── Database ───
 pgdata/

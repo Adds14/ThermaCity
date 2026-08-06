@@ -74,12 +74,12 @@ class EnvironmentalFeature(Base):
         Float, comment="Random Forest LST prediction (°C)"
     )
 
-    # ── Computed HVI ──────────────────────────────────────────
+    # ── Computed Heat Vulnerability Score ─────────────────────
     hvi_score: Mapped[float | None] = mapped_column(
-        Float, comment="Heat Vulnerability Index (0–100)"
+        Float, comment="Heat Vulnerability Score (0–100)"
     )
     hvi_tier: Mapped[str | None] = mapped_column(
-        String(10), comment="Low / Moderate / High / Severe"
+        String(15), comment="Heat-Safe / Caution / Stressed / Emergency"
     )
 
     # ── Timestamps ────────────────────────────────────────────
@@ -106,7 +106,7 @@ class EnvironmentalFeature(Base):
             name="ck_hvi_range",
         ),
         CheckConstraint(
-            "hvi_tier IS NULL OR hvi_tier IN ('Low', 'Moderate', 'High', 'Severe')",
+            "hvi_tier IS NULL OR hvi_tier IN ('Heat-Safe', 'Caution', 'Stressed', 'Emergency')",
             name="ck_hvi_tier",
         ),
         Index("idx_envfeat_grid_year", "grid_id", "year"),

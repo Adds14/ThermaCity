@@ -70,9 +70,9 @@ CREATE TABLE environmental_features (
     -- ML model output
     lst_predicted       REAL,           -- Random Forest prediction (°C)
 
-    -- Computed Heat Vulnerability Index
+    -- Computed Heat Vulnerability Score
     hvi_score           REAL CHECK (hvi_score BETWEEN 0 AND 100),
-    hvi_tier            VARCHAR(10) CHECK (hvi_tier IN ('Low', 'Moderate', 'High', 'Severe')),
+    hvi_tier            VARCHAR(15) CHECK (hvi_tier IN ('Heat-Safe', 'Caution', 'Stressed', 'Emergency')),
 
     -- Metadata
     created_at          TIMESTAMPTZ DEFAULT NOW(),

@@ -2,9 +2,9 @@
 
 # 🌡️ ThermaCity
 
-### AI-Powered Urban Heat Island Monitoring & Vulnerability Index Platform
+### Know Where the Heat Hurts Most
 
-*Spatial machine learning meets citizen science to map where heat hurts most.*
+*Satellite intelligence + citizen reports to protect Pune's most vulnerable neighbourhoods during heatwaves.*
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
@@ -17,19 +17,104 @@
 
 ---
 
-## 🔍 What Is ThermaCity?
+## The Problem
 
-ThermaCity is an **MVP decision-support platform** for the city of **Pune, India** that goes beyond simple satellite heat maps. It uses a **Random Forest regression model** to learn how land-cover characteristics (vegetation, built-up density, water bodies, tree canopy) physically influence surface temperature — and then combines those predictions with humidity, wind, and population data to compute a continuous **Heat Vulnerability Index (HVI)** scored 0–100.
+In April 2024, Pune recorded its highest-ever temperature of **42.4°C**. Across India that summer, over **46,000 suspected heatstroke cases** and **110+ confirmed heat deaths** were reported. Heatwaves are no longer rare events — they are seasonal emergencies.
 
-The platform also collects **geo-tagged citizen reports** of heat-related infrastructure gaps (no shade at bus stops, closed cooling shelters, hot pavement), providing ground-level context that satellites cannot capture.
+But Pune Municipal Corporation has **no tool to answer the most critical question during a heat emergency:**
 
-### The Key Insight
+> **"Which neighbourhoods should we protect first?"**
 
-> A hot place is not necessarily a *vulnerable* place. A parking lot at 50°C with nobody around is less dangerous than a crowded market at 42°C with no shade, high humidity, and zero wind. ThermaCity models this distinction.
+Satellite temperature maps show *where it's hot*. But a hot parking lot with nobody around is not the same as a hot, crowded, shadeless marketplace. **Vulnerability** is the intersection of heat, humidity, stagnant wind, missing tree canopy, and how many people are exposed — and no existing system models this.
+
+## The Solution
+
+ThermaCity combines **satellite imagery, machine learning, and citizen reports** to produce a **Heat Vulnerability Score (0–100)** for every 100×100 m block across Pune. It answers three questions that temperature maps alone cannot:
+
+| Question | Who Asks It | How ThermaCity Answers |
+|----------|-------------|----------------------|
+| *"Where should we send water tankers and cooling vans RIGHT NOW?"* | Disaster management | Real-time ward-level risk rankings with the most dangerous zones highlighted |
+| *"Where should we plant trees for maximum cooling impact?"* | Urban planners | Scenario simulator — *"500 trees here drops felt temperature by 2.1°C for 50,000 residents"* |
+| *"Is my neighbourhood heat-safe?"* | Citizens | Personal heat risk lookup + ability to report missing shade, broken fountains, closed shelters |
 
 ---
 
-## 🏗️ System Architecture
+## What the Score Actually Means
+
+ThermaCity doesn't just assign numbers. Each score tells a story about what people on the ground experience:
+
+| Score | Risk Tier | What It Means In Practice |
+|-------|-----------|--------------------------|
+| 0–25 | 🟢 **Heat-Safe** | Manageable heat. Adequate shade and ventilation. |
+| 26–50 | 🟡 **Caution Zone** | Uncomfortable during peak hours. Elderly and outdoor workers at mild risk. |
+| 51–75 | 🟠 **Heat-Stressed** | Dangerous for prolonged outdoor exposure. Cooling infrastructure gaps exist. |
+| 76–100 | 🔴 **Heat Emergency** | Life-threatening during heatwaves. Immediate intervention needed. |
+
+**Example:** A score of **84** means: surface temperature is 46°C, tree canopy is only 8%, wind is stagnant below 1 m/s, humidity makes it *feel* like 52°C, and 18,000 people per km² are exposed to this every day from March to June.
+
+A score of **22** means: it's warm at 34°C, but 40% tree cover, a nearby river cooling the air, decent wind flow, and low-density residential layout keep it manageable.
+
+---
+
+## How the AI Works
+
+ThermaCity deliberately separates **physics** from **vulnerability** for scientific rigour:
+
+### Step 1 — ML Temperature Prediction
+
+A **Random Forest Regressor** learns how land-cover physically influences surface temperature:
+
+| Input Feature | What It Captures |
+|---|---|
+| **NDVI** | Vegetation health — green areas cool through evapotranspiration |
+| **NDBI** | Concrete & built-up density — absorbs and re-radiates heat |
+| **NDWI** | Water body proximity — lakes and rivers provide localised cooling |
+| **Tree Canopy Fraction** | Physical shade from tree cover — blocks direct solar radiation |
+
+**Target:** Observed Land Surface Temperature (LST) from Landsat 8/9.
+
+This model powers the **scenario simulator** — planners can ask *"What if we increase tree canopy by 20% in Hadapsar?"* and get a physically meaningful temperature prediction.
+
+### Step 2 — Deterministic Vulnerability Scoring
+
+The Heat Vulnerability Score is computed using a **weighted formula** (not ML) that layers human exposure on top of the predicted temperature:
+
+```
+Score = 0.35 × Surface Heat
+      + 0.20 × Population Density (exposure risk)
+      + 0.20 × Lack of Tree Canopy (shade deficit)
+      + 0.15 × Humidity (feels-like amplifier)
+      + 0.10 × Wind Stagnation (trapped heat)
+```
+
+> **Why separate ML from scoring?** Because the ML model captures physics (land-cover → temperature). The vulnerability formula adds the human dimension (how many people, how exposed). Mixing them would make the model uninterpretable and the scenario simulator meaningless.
+
+---
+
+## Community Reports: What Satellites Can't See
+
+Satellites measure temperature. Citizens experience **reality**:
+
+- 🚏 *"The bus stop at Swargate has zero shade. I waited 20 minutes in 44°C sun."*
+- 🚰 *"The public water fountain at Deccan Gymkhana has been broken for 3 months."*
+- 🏗️ *"Construction workers on Senapati Bapat Road have nowhere to cool down."*
+- 🌳 *"The only park in our ward is locked during peak afternoon hours."*
+
+These geo-tagged reports overlay on the satellite heat map, adding a **visceral, human layer** that pure data cannot capture. Municipal planners see citizen pain points directly on their dashboard — turning complaints into actionable infrastructure priorities.
+
+**Report categories:**
+| Category | What It Flags |
+|----------|---------------|
+| 🔥 Extreme Heat Discomfort | Dangerously hot areas with no relief |
+| 🌳 Lack of Shade | Missing tree cover or shade structures |
+| ♨️ Hot Pavement | Radiating surfaces that burn through footwear |
+| 🚏 Bus Stop Without Shade | Transit points with zero sun protection |
+| 🚰 Water Fountain Unavailable | Broken or missing public drinking water |
+| 🏠 Cooling Shelter Closed | Emergency cooling centres that aren't operational |
+
+---
+
+## System Architecture
 
 ```
 Satellite & Climate Data                    Citizens
@@ -84,47 +169,22 @@ Satellite & Climate Data                    Citizens
 
 ---
 
-## 🧠 How the AI Works
+## Dashboard Outputs
 
-ThermaCity deliberately **separates machine learning from vulnerability scoring** for scientific rigor:
+When a municipal officer opens ThermaCity during a heatwave alert, they see:
 
-### Step 1 — ML Temperature Prediction
-
-A **Random Forest Regressor** learns the physical relationship between land-cover and surface temperature:
-
-| Input Features | What It Measures |
-|---|---|
-| **NDVI** | Vegetation health & greenness |
-| **NDBI** | Built-up / impervious surface density |
-| **NDWI** | Proximity to cooling water bodies |
-| **Tree Canopy Fraction** | Physical shade & evapotranspiration |
-
-**Target:** Observed Land Surface Temperature (LST) from Landsat 8/9 thermal band.
-
-This model powers the **scenario simulator** — planners can ask *"What if we increase tree canopy by 20% in Ward X?"* and get a physically meaningful temperature prediction.
-
-### Step 2 — Deterministic HVI Computation
-
-The **Heat Vulnerability Index** (0–100) is computed using a weighted formula, NOT predicted by ML:
-
-```
-HVI = 0.35 × norm(LST_predicted)
-    + 0.20 × norm(Population_Density)
-    + 0.20 × norm(1 − Tree_Canopy)
-    + 0.15 × norm(Humidity)
-    + 0.10 × norm(1 / Wind_Speed)
-```
-
-| HVI Range | Risk Tier |
-|-----------|-----------|
-| 0–25 | 🟢 Low |
-| 26–50 | 🟡 Moderate |
-| 51–75 | 🟠 High |
-| 76–100 | 🔴 Severe |
+| View | What It Shows | Who Uses It |
+|------|---------------|-------------|
+| **City-wide Heat Risk Map** | Every 100m block colour-coded by vulnerability | Disaster management |
+| **Ward Rankings** | Pune's 47 wards sorted from most to least dangerous | Commissioner's office |
+| **Temporal Change (2021–2026)** | Year slider showing which areas got worse over time | Urban planners |
+| **Citizen Report Overlay** | Clustered pins showing ground-level heat complaints | Infrastructure teams |
+| **Feature Importance** | Which factor (concrete? no trees? stagnant air?) drives heat in each ward | Policy teams |
+| **Scenario Simulator** | "What if we plant 500 trees here?" — before/after risk comparison | Budget proposals |
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 ThermaCity/
@@ -141,7 +201,7 @@ ThermaCity/
 ├── ml/                          # Machine Learning pipeline
 │   ├── scripts/
 │   │   ├── train_model.py       # RF training with sklearn Pipeline
-│   │   └── evaluate_model.py    # RMSE, MAE, R² reporting
+│   │   └── evaluate_model.py    # RMSE, MAE, R² evaluation
 │   ├── models/                  # Serialized .joblib artifacts
 │   └── data/                    # Training/test CSVs (gitignored)
 ├── gee/                         # Google Earth Engine pipelines
@@ -149,7 +209,7 @@ ThermaCity/
 │   │   ├── 01_extract_lst.py    # Landsat 8/9 thermal data
 │   │   ├── 02_extract_ndvi_ndbi.py  # Sentinel-2 spectral indices
 │   │   ├── 04_extract_tree_canopy.py # ESA WorldCover 10m
-│   │   └── 08_merge_features.py # Join all CSVs → training_set.csv
+│   │   └── 08_merge_features.py # Merge all layers → training set
 │   ├── utils/
 │   │   ├── auth.py              # GEE authentication
 │   │   ├── geometry.py          # Pune boundary + 100m grid generator
@@ -163,23 +223,21 @@ ThermaCity/
 
 ---
 
-## 🗄️ Database Schema
+## Data Sources
 
-All spatial data is stored in **PostgreSQL + PostGIS** with full geometry support:
+| Dataset | Provider | Resolution | What It Captures |
+|---------|----------|------------|------------------|
+| Landsat 8/9 Collection 2 L2 | USGS/NASA | 30 m | Surface temperature (the raw heat) |
+| Sentinel-2 L2A Harmonized | ESA/Copernicus | 10 m | Vegetation, concrete, water (what controls the heat) |
+| ESA WorldCover v200 | ESA | 10 m | Tree canopy (what blocks the heat) |
+| ERA5-Land | ECMWF | ~9 km | Humidity and wind (what traps or amplifies the heat) |
+| WorldPop | WorldPop | 100 m | Population density (who is exposed to the heat) |
 
-| Table | Description | Geometry |
-|-------|-------------|----------|
-| `ward_boundaries` | Pune PMC administrative wards | MultiPolygon |
-| `spatial_grid` | ~30,000+ analysis cells (100×100 m) | Polygon |
-| `environmental_features` | Per-cell, per-year features + HVI | — (FK to grid) |
-| `feature_importance` | RF model explainability scores | — |
-| `community_reports` | Citizen heat reports | Point |
-
-**Key trigger:** `trg_report_assign_spatial` automatically assigns each community report to its containing grid cell and ward via `ST_Contains` — zero application code needed.
+All raster data is aggregated to a uniform **100×100 m grid** using a [single canonical function](gee/utils/export.py) to guarantee spatial alignment across every layer.
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -248,42 +306,17 @@ npm run dev
 
 ---
 
-## 📊 Data Sources
+## Model Evaluation Targets
 
-| Dataset | Provider | Resolution | Use |
-|---------|----------|------------|-----|
-| Landsat 8/9 Collection 2 L2 | USGS/NASA | 30 m (thermal) | Land Surface Temperature |
-| Sentinel-2 L2A Harmonized | ESA/Copernicus | 10 m (optical) | NDVI, NDBI, NDWI |
-| ESA WorldCover v200 | ESA | 10 m | Tree canopy fraction |
-| ERA5-Land | ECMWF | ~9 km | Humidity, wind speed |
-| WorldPop | WorldPop | 100 m | Population density |
-
-All raster data is aggregated to a uniform **100×100 m grid** using `ee.Reducer.mean()` through a [single canonical function](gee/utils/export.py) to guarantee spatial alignment.
+| Metric | Target | What It Tells Us |
+|--------|--------|------------------|
+| RMSE | ≤ 2.5 °C | "Our temperature predictions are off by at most 2.5 degrees on average" |
+| MAE | ≤ 2.0 °C | "The typical prediction error a planner would see" |
+| R² | ≥ 0.75 | "Land-cover features explain 75%+ of temperature variation" |
 
 ---
 
-## 🎯 Expected Dashboard Outputs
-
-1. **City-wide Heat Vulnerability Map** — Interactive grid coloured by HVI risk tier
-2. **Ward-wise Rankings** — Sortable table of Pune's most heat-vulnerable wards
-3. **Temporal Heat Change Map (2021–2026)** — Year slider showing UHI expansion
-4. **Citizen Report Overlay** — Clustered markers of ground-level observations
-5. **Feature Importance Analysis** — Which land-cover variable drives heat where
-6. **Scenario Simulator** — "What if we plant 1000 trees in Ward X?"
-
----
-
-## 📈 Evaluation Metrics
-
-| Metric | Target | Purpose |
-|--------|--------|---------|
-| RMSE | ≤ 2.5 °C | Primary prediction accuracy |
-| MAE | ≤ 2.0 °C | Interpretable average error |
-| R² | ≥ 0.75 | Variance explained by land-cover features |
-
----
-
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
@@ -296,7 +329,7 @@ All raster data is aggregated to a uniform **100×100 m grid** using `ee.Reducer
 
 ---
 
-## 📝 License
+## License
 
 This project is developed as a B.Tech capstone project.
 
@@ -304,6 +337,6 @@ This project is developed as a B.Tech capstone project.
 
 <div align="center">
 
-**Built for Pune. Powered by open satellite data. Designed for climate resilience.**
+**Built for Pune. Powered by open satellite data. Designed to save lives during heatwaves.**
 
 </div>

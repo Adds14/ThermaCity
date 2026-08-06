@@ -208,7 +208,8 @@ def print_report(
     """Print a comprehensive evaluation report to the console."""
 
     print("\n" + "═" * 70)
-    print("  ThermaCity — Random Forest LST Predictor Evaluation Report")
+    print("  ThermaCity — Temperature Prediction Model: Evaluation Report")
+    print("  Does the model know where the heat hurts most?")
     print("═" * 70)
 
     # ── Primary Metrics ──
@@ -225,13 +226,13 @@ def print_report(
     # ── Interpretation ──
     r2 = metrics["r2"]
     if r2 >= 0.85:
-        quality = "EXCELLENT — model captures the land-cover → LST relationship very well"
+        quality = "EXCELLENT — scenario simulator will give planners reliable temperature predictions"
     elif r2 >= 0.75:
-        quality = "GOOD — suitable for scenario simulation with acceptable accuracy"
+        quality = "GOOD — model captures enough land-cover physics for actionable scenario simulations"
     elif r2 >= 0.60:
-        quality = "MODERATE — consider feature engineering or hyperparameter tuning"
+        quality = "MODERATE — usable but consider additional features or hyperparameter tuning"
     else:
-        quality = "POOR — model may need additional features or data quality review"
+        quality = "POOR — predictions may mislead planners. Review data quality before deploying"
 
     print(f"\n  Model Quality: {quality}")
 

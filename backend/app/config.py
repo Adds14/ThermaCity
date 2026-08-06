@@ -1,8 +1,10 @@
-"""
-ThermaCity — Application Settings
+"""ThermaCity — Application Settings
 
 Loads configuration from environment variables / .env file.
 All settings are validated at startup via Pydantic.
+
+Heat Vulnerability Score weights are parameterised here so they
+can be adjusted through stakeholder feedback without code changes.
 """
 
 import json
@@ -32,9 +34,12 @@ class Settings(BaseSettings):
     # ── ML Model ──────────────────────────────────────────────
     ml_model_path: str = "../ml/models/rf_lst_predictor_v1.joblib"
 
-    # ── HVI Weights ───────────────────────────────────────────
+    # ── Heat Vulnerability Score Weights ─────────────────────
     # JSON string — parsed into dict at runtime.
     # Keys: lst, humidity, wind, population, canopy. Must sum to 1.0.
+    # These defaults align with established urban climate literature:
+    #   Surface heat (0.35) + human exposure (0.20) + shade deficit (0.20)
+    #   + humidity amplifier (0.15) + wind stagnation (0.10) = 1.0
     hvi_weights: str = (
         '{"lst": 0.35, "humidity": 0.15, "wind": 0.10, "population": 0.20, "canopy": 0.20}'
     )
@@ -51,6 +56,7 @@ class Settings(BaseSettings):
 
     # ── Server ────────────────────────────────────────────────
     app_name: str = "ThermaCity"
+    app_description: str = "Know where the heat hurts most — heat vulnerability mapping for Pune"
     debug: bool = True
     api_v1_prefix: str = "/api/v1"
 
