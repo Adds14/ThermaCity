@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.database import get_db
 from app.main import get_ml_predictor
-from app.models.environmental_features import EnvironmentalFeatures
+from app.models.environmental_features import EnvironmentalFeature
 from app.models.spatial_grid import SpatialGrid
 from app.schemas.scenario import ScenarioRequest, ScenarioResult
 from app.services.hvi_calculator import HVICalculator
@@ -50,11 +50,11 @@ async def simulate_scenario(
 
     # 1. Fetch current features for the requested cells and year
     stmt = (
-        select(SpatialGrid, EnvironmentalFeatures)
-        .join(EnvironmentalFeatures, SpatialGrid.id == EnvironmentalFeatures.grid_id)
+        select(SpatialGrid, EnvironmentalFeature)
+        .join(EnvironmentalFeature, SpatialGrid.id == EnvironmentalFeature.grid_id)
         .where(
             SpatialGrid.id.in_(request.cell_ids),
-            EnvironmentalFeatures.year == request.year,
+            EnvironmentalFeature.year == request.year,
         )
     )
     result = await db.execute(stmt)
@@ -67,8 +67,8 @@ async def simulate_scenario(
         )
 
     # Fetch ALL cells for the year to perform proper Min-Max normalization for HVI
-    all_stmt = select(EnvironmentalFeatures).where(
-        EnvironmentalFeatures.year == request.year
+    all_stmt = select(EnvironmentalFeature).where(
+        EnvironmentalFeature.year == request.year
     )
     all_result = await db.execute(all_stmt)
     all_features = all_result.scalars().all()

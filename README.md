@@ -153,18 +153,19 @@ Satellite & Climate Data                    Citizens
 └──────────────────────┬───────────────────────────┘
                        │
                        ▼
-              ┌─────────────────┐
-              │   FastAPI        │
-              │   REST API       │
-              │   + HVI Engine   │
-              └────────┬────────┘
-                       │
-                       ▼
-              ┌─────────────────┐
-              │  React + Mapbox  │
-              │  Dashboard       │
-              │  (Interactive)   │
-              └─────────────────┘
+               ┌─────────────────┐
+               │   FastAPI        │
+               │   REST API       │
+               │   + ReportLab    │
+               │   + HVI Engine   │
+               └────────┬────────┘
+                        │
+                        ▼
+               ┌─────────────────┐
+               │  React + Leaflet │
+               │  Dashboard       │
+               │  (Interactive)   │
+               └─────────────────┘
 ```
 
 ---
@@ -175,12 +176,11 @@ When a municipal officer opens ThermaCity during a heatwave alert, they see:
 
 | View | What It Shows | Who Uses It |
 |------|---------------|-------------|
-| **City-wide Heat Risk Map** | Every 100m block colour-coded by vulnerability | Disaster management |
+| **City-wide Heat Risk Map** | Every 100m block colour-coded by vulnerability using Canvas-rendered Leaflet tiles | Disaster management |
 | **Ward Rankings** | Pune's 47 wards sorted from most to least dangerous | Commissioner's office |
+| **Block-Level Simulation** | "What if we plant 500 trees here?" — block-specific precision before/after risk comparison | Budget proposals |
+| **Automated PDF Reports** | Publication-ready PDF downloads for macro (city-wide) or micro (specific 100m block) risk assessment | Planners / Public |
 | **Temporal Change (2021–2026)** | Year slider showing which areas got worse over time | Urban planners |
-| **Citizen Report Overlay** | Clustered pins showing ground-level heat complaints | Infrastructure teams |
-| **Feature Importance** | Which factor (concrete? no trees? stagnant air?) drives heat in each ward | Policy teams |
-| **Scenario Simulator** | "What if we plant 500 trees here?" — before/after risk comparison | Budget proposals |
 
 ---
 
@@ -188,7 +188,7 @@ When a municipal officer opens ThermaCity during a heatwave alert, they see:
 
 ```
 ThermaCity/
-├── frontend/                    # React (Vite) + Mapbox GL JS
+├── frontend/                    # React (Vite) + Leaflet
 ├── backend/                     # FastAPI + SQLAlchemy + PostGIS
 │   ├── app/
 │   │   ├── config.py            # Pydantic Settings (HVI weights, DB URL)
@@ -320,7 +320,7 @@ npm run dev
 
 | Layer | Technology |
 |-------|------------|
-| **Frontend** | React 19 (Vite) + Mapbox GL JS |
+| **Frontend** | React 19 (Vite) + Leaflet (react-leaflet) |
 | **Backend** | Python 3.11 + FastAPI |
 | **Database** | PostgreSQL 16 + PostGIS 3.4 |
 | **ML** | scikit-learn (Random Forest Regressor) |

@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.spatial_grid import SpatialGrid
-from app.models.environmental_features import EnvironmentalFeatures
+from app.models.environmental_features import EnvironmentalFeature
 from app.models.ward_boundary import WardBoundary
 
 logger = logging.getLogger(__name__)
@@ -43,23 +43,23 @@ async def get_ward_rankings(
             WardBoundary.id.label("ward_id"),
             WardBoundary.ward_name,
             WardBoundary.ward_code,
-            func.avg(EnvironmentalFeatures.hvi_score).label("avg_hvi"),
-            func.max(EnvironmentalFeatures.hvi_score).label("max_hvi"),
-            func.min(EnvironmentalFeatures.hvi_score).label("min_hvi"),
-            func.count(EnvironmentalFeatures.id).label("cell_count"),
-            func.avg(EnvironmentalFeatures.lst_observed).label("avg_lst"),
-            func.avg(EnvironmentalFeatures.tree_canopy_frac).label("avg_canopy"),
-            func.avg(EnvironmentalFeatures.population_density).label("avg_pop_density"),
+            func.avg(EnvironmentalFeature.hvi_score).label("avg_hvi"),
+            func.max(EnvironmentalFeature.hvi_score).label("max_hvi"),
+            func.min(EnvironmentalFeature.hvi_score).label("min_hvi"),
+            func.count(EnvironmentalFeature.id).label("cell_count"),
+            func.avg(EnvironmentalFeature.lst_observed).label("avg_lst"),
+            func.avg(EnvironmentalFeature.tree_canopy_frac).label("avg_canopy"),
+            func.avg(EnvironmentalFeature.population_density).label("avg_pop_density"),
         )
         .join(SpatialGrid, SpatialGrid.ward_id == WardBoundary.id)
         .join(
-            EnvironmentalFeatures,
-            (EnvironmentalFeatures.grid_id == SpatialGrid.id)
-            & (EnvironmentalFeatures.year == year),
+            EnvironmentalFeature,
+            (EnvironmentalFeature.grid_id == SpatialGrid.id)
+            & (EnvironmentalFeature.year == year),
         )
-        .where(EnvironmentalFeatures.hvi_score.isnot(None))
+        .where(EnvironmentalFeature.hvi_score.isnot(None))
         .group_by(WardBoundary.id, WardBoundary.ward_name, WardBoundary.ward_code)
-        .order_by(sort_func(func.avg(EnvironmentalFeatures.hvi_score)))
+        .order_by(sort_func(func.avg(EnvironmentalFeature.hvi_score)))
     )
 
     result = await db.execute(stmt)
@@ -128,21 +128,21 @@ async def get_ward_detail(
     # Aggregate stats for this ward
     stats_stmt = (
         select(
-            func.count(EnvironmentalFeatures.id).label("cell_count"),
-            func.avg(EnvironmentalFeatures.hvi_score).label("avg_hvi"),
-            func.max(EnvironmentalFeatures.hvi_score).label("max_hvi"),
-            func.min(EnvironmentalFeatures.hvi_score).label("min_hvi"),
-            func.avg(EnvironmentalFeatures.lst_observed).label("avg_lst"),
-            func.avg(EnvironmentalFeatures.tree_canopy_frac).label("avg_canopy"),
-            func.avg(EnvironmentalFeatures.humidity).label("avg_humidity"),
-            func.avg(EnvironmentalFeatures.wind_speed).label("avg_wind"),
-            func.avg(EnvironmentalFeatures.population_density).label("avg_pop"),
+            func.count(EnvironmentalFeature.id).label("cell_count"),
+            func.avg(EnvironmentalFeature.hvi_score).label("avg_hvi"),
+            func.max(EnvironmentalFeature.hvi_score).label("max_hvi"),
+            func.min(EnvironmentalFeature.hvi_score).label("min_hvi"),
+            func.avg(EnvironmentalFeature.lst_observed).label("avg_lst"),
+            func.avg(EnvironmentalFeature.tree_canopy_frac).label("avg_canopy"),
+            func.avg(EnvironmentalFeature.humidity).label("avg_humidity"),
+            func.avg(EnvironmentalFeature.wind_speed).label("avg_wind"),
+            func.avg(EnvironmentalFeature.population_density).label("avg_pop"),
         )
-        .join(SpatialGrid, SpatialGrid.id == EnvironmentalFeatures.grid_id)
+        .join(SpatialGrid, SpatialGrid.id == EnvironmentalFeature.grid_id)
         .where(
             SpatialGrid.ward_id == ward_id,
-            EnvironmentalFeatures.year == year,
-            EnvironmentalFeatures.hvi_score.isnot(None),
+            EnvironmentalFeature.year == year,
+            EnvironmentalFeature.hvi_score.isnot(None),
         )
     )
     stats_result = await db.execute(stats_stmt)
@@ -151,16 +151,16 @@ async def get_ward_detail(
     # Tier distribution within this ward
     tier_stmt = (
         select(
-            EnvironmentalFeatures.hvi_tier,
-            func.count(EnvironmentalFeatures.id).label("count"),
+            EnvironmentalFeature.hvi_tier,
+            func.count(EnvironmentalFeature.id).label("count"),
         )
-        .join(SpatialGrid, SpatialGrid.id == EnvironmentalFeatures.grid_id)
+        .join(SpatialGrid, SpatialGrid.id == EnvironmentalFeature.grid_id)
         .where(
             SpatialGrid.ward_id == ward_id,
-            EnvironmentalFeatures.year == year,
-            EnvironmentalFeatures.hvi_tier.isnot(None),
+            EnvironmentalFeature.year == year,
+            EnvironmentalFeature.hvi_tier.isnot(None),
         )
-        .group_by(EnvironmentalFeatures.hvi_tier)
+        .group_by(EnvironmentalFeature.hvi_tier)
     )
     tier_result = await db.execute(tier_stmt)
     tier_distribution = {t.hvi_tier: t.count for t in tier_result.all()}
@@ -170,18 +170,18 @@ async def get_ward_detail(
         select(
             SpatialGrid.cell_code,
             SpatialGrid.id.label("cell_id"),
-            EnvironmentalFeatures.hvi_score,
-            EnvironmentalFeatures.hvi_tier,
-            EnvironmentalFeatures.lst_observed,
-            EnvironmentalFeatures.tree_canopy_frac,
+            EnvironmentalFeature.hvi_score,
+            EnvironmentalFeature.hvi_tier,
+            EnvironmentalFeature.lst_observed,
+            EnvironmentalFeature.tree_canopy_frac,
         )
-        .join(SpatialGrid, SpatialGrid.id == EnvironmentalFeatures.grid_id)
+        .join(SpatialGrid, SpatialGrid.id == EnvironmentalFeature.grid_id)
         .where(
             SpatialGrid.ward_id == ward_id,
-            EnvironmentalFeatures.year == year,
-            EnvironmentalFeatures.hvi_score.isnot(None),
+            EnvironmentalFeature.year == year,
+            EnvironmentalFeature.hvi_score.isnot(None),
         )
-        .order_by(desc(EnvironmentalFeatures.hvi_score))
+        .order_by(desc(EnvironmentalFeature.hvi_score))
         .limit(10)
     )
     hotspots_result = await db.execute(hotspots_stmt)

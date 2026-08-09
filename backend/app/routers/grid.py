@@ -18,7 +18,7 @@ from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.models.spatial_grid import SpatialGrid
-from app.models.environmental_features import EnvironmentalFeatures
+from app.models.environmental_features import EnvironmentalFeature
 from app.services.geojson_builder import build_feature_collection
 
 logger = logging.getLogger(__name__)
@@ -46,11 +46,11 @@ async def get_grid(
     """
     # Build query: join grid with features for the requested year
     stmt = (
-        select(SpatialGrid, EnvironmentalFeatures)
+        select(SpatialGrid, EnvironmentalFeature)
         .outerjoin(
-            EnvironmentalFeatures,
-            (SpatialGrid.id == EnvironmentalFeatures.grid_id)
-            & (EnvironmentalFeatures.year == year),
+            EnvironmentalFeature,
+            (SpatialGrid.id == EnvironmentalFeature.grid_id)
+            & (EnvironmentalFeature.year == year),
         )
     )
 

@@ -1,12 +1,15 @@
 """
 ThermaCity — Community Reports Router
 
-Endpoints for submitting and retrieving crowdsourced heat vulnerability reports.
+Endpoints for submitting and retrieving crowdsourced heat vulnerability reports,
+and downloading PDF heat vulnerability assessment reports.
 """
 
+import io
 import logging
 
 from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -17,6 +20,7 @@ from app.models.spatial_grid import SpatialGrid
 from app.models.ward_boundary import WardBoundary
 from app.schemas.report import ReportCreate, ReportResponse
 from app.services.geojson_builder import build_feature_collection
+from app.services.report_generator import generate_report
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +149,54 @@ async def list_reports(
         "type": "FeatureCollection",
         "features": features
     }
+
+
+@router.get("/download")
+def download_pdf_report(
+    year: int = Query(2024, ge=2021, le=2026, description="Data year for the report"),
+):
+    """
+    Generate and download a PDF heat vulnerability assessment report.
+
+    Loads the demo grid data for the requested year, extracts the summary
+    statistics and top-10 highest-risk cells, then streams back a
+    publication-ready PDF document.
+    """
+    from app.routers.demo import _load_year
+
+    try:
+        data = _load_year(year)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Failed to load data for PDF report (year=%d)", year)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not load data for year {year}: {exc}",
+        )
+
+    summary = data["summary"]
+
+    # Extract top 10 cells by HVI score from the cached GeoJSON
+    features = data["geojson"].get("features", [])
+    sorted_cells = sorted(
+        features,
+        key=lambda f: f.get("properties", {}).get("hvi_score", 0),
+        reverse=True,
+    )
+    top_cells = [f["properties"] for f in sorted_cells[:10]]
+
+    pdf_bytes = generate_report(summary=summary, top_cells=top_cells, year=year)
+
+    filename = f"ThermaCity_Report_{year}.pdf"
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Length": str(len(pdf_bytes)),
+        },
+    )
 
 
 def _to_response(report: CommunityReport) -> ReportResponse:

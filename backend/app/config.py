@@ -23,16 +23,20 @@ class Settings(BaseSettings):
 
     # ── Database ──────────────────────────────────────────────
     database_url: str = (
-        "postgresql+asyncpg://thermacity:thermacity_dev_2026@localhost:5432/thermacity"
+        "postgresql+asyncpg://postgres:ThermaCity123%40@db.ctjbapfdnyioazajfasp.supabase.co:5432/postgres"
     )
 
-    # Synchronous URL for Alembic migrations (asyncpg → psycopg2)
+    # Synchronous URL for migrations / scripts (asyncpg → psycopg2)
     @property
     def database_url_sync(self) -> str:
         return self.database_url.replace("+asyncpg", "")
 
     # ── ML Model ──────────────────────────────────────────────
     ml_model_path: str = "../ml/models/rf_lst_predictor_v1.joblib"
+
+    # ── Google Earth Engine ───────────────────────────────────
+    gee_service_account_key: str = "../credentials/thermacity-504715-08378215d2cd.json"
+
 
     # ── Heat Vulnerability Score Weights ─────────────────────
     # JSON string — parsed into dict at runtime.

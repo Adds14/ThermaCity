@@ -51,3 +51,11 @@ docker-compose.override.yml
 
 # ─── Jupyter ───
 .ipynb_checkpoints/
+
+# ─── Scratch & Agent files ───
+.agents/
+test*.json
+test*.csv
+test*.py
+fix.py
+merge_csvs.py

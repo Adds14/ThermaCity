@@ -1,0 +1,131 @@
+.ward-rankings-container {
+  padding: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header {
+  margin-bottom: 28px;
+}
+
+.page-header h2 {
+  font-size: 1.6rem;
+  margin-bottom: 8px;
+}
+
+.page-header .subtitle {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.animate-slide-in {
+  animation: slide-in-left 0.4s ease-out;
+}
+
+.rankings-table-wrapper {
+  padding: 0;
+  overflow: hidden;
+}
+
+.rankings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.rankings-table thead {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.rankings-table th {
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-weight: 600;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.rankings-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  vertical-align: middle;
+}
+
+.rankings-table tbody tr {
+  transition: background 0.2s;
+}
+
+.rankings-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.critical-row {
+  background: rgba(239, 68, 68, 0.04) !important;
+}
+
+.critical-row:hover {
+  background: rgba(239, 68, 68, 0.08) !important;
+}
+
+.rank-col {
+  font-weight: 700;
+  color: var(--text-muted);
+  width: 60px;
+}
+
+.name-col {
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.score-col {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.score-bar-bg {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  overflow: hidden;
+  min-width: 80px;
+}
+
+.score-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.8s ease-out;
+}
+
+.bg-safe { background: var(--tier-safe); }
+.bg-caution { background: var(--tier-caution); }
+.bg-stressed { background: var(--tier-stressed); }
+.bg-emergency { background: var(--tier-emergency); }
+
+.text-emergency {
+  color: var(--tier-emergency) !important;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
+.btn-sm {
+  padding: 5px 12px;
+  font-size: 0.75rem;
+}
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}

@@ -13,6 +13,7 @@ Usage:
 import logging
 
 import ee
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -21,16 +22,34 @@ def initialize_gee(project_id: str | None = None) -> None:
     """
     Authenticate and initialize the Earth Engine Python API.
 
-    Attempts to initialize with cached credentials first.
+    Attempts to use a Service Account JSON key from the credentials folder.
     Falls back to interactive browser authentication if needed.
-
-    Args:
-        project_id: Google Cloud project ID registered with Earth Engine.
-                     Required for newer GEE API versions. If None, attempts
-                     initialization without a project (legacy mode).
     """
+    import os
+    import glob
+
+    cred_dir = Path(__file__).resolve().parent.parent.parent / "credentials"
+    json_keys = glob.glob(str(cred_dir / "*.json"))
+
+    if json_keys:
+        key_path = json_keys[0]
+        logger.info(f"Found service account key: {key_path}")
+        import json
+        with open(key_path, 'r') as f:
+            key_data = json.load(f)
+            client_email = key_data.get('client_email')
+        
+        try:
+            credentials = ee.ServiceAccountCredentials(client_email, key_path)
+            ee.Initialize(credentials, project=project_id or key_data.get('project_id'))
+            logger.info("Earth Engine initialized using Service Account.")
+            return
+        except Exception as e:
+            logger.error(f"Service Account auth failed: {e}")
+            # Fall back to personal auth
+    
     try:
-        # Try initializing with cached credentials first
+        # Try initializing with cached personal credentials
         if project_id:
             ee.Initialize(project=project_id)
         else:

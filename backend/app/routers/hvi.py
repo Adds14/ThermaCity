@@ -15,7 +15,7 @@ from sqlalchemy import select, func, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models.environmental_features import EnvironmentalFeatures
+from app.models.environmental_features import EnvironmentalFeature
 
 logger = logging.getLogger(__name__)
 
@@ -36,14 +36,14 @@ async def hvi_summary(
     """
     # Aggregate HVI statistics
     stmt = select(
-        func.count(EnvironmentalFeatures.id).label("total_cells"),
-        func.avg(EnvironmentalFeatures.hvi_score).label("avg_score"),
-        func.max(EnvironmentalFeatures.hvi_score).label("max_score"),
-        func.min(EnvironmentalFeatures.hvi_score).label("min_score"),
-        func.stddev(EnvironmentalFeatures.hvi_score).label("std_score"),
+        func.count(EnvironmentalFeature.id).label("total_cells"),
+        func.avg(EnvironmentalFeature.hvi_score).label("avg_score"),
+        func.max(EnvironmentalFeature.hvi_score).label("max_score"),
+        func.min(EnvironmentalFeature.hvi_score).label("min_score"),
+        func.stddev(EnvironmentalFeature.hvi_score).label("std_score"),
     ).where(
-        EnvironmentalFeatures.year == year,
-        EnvironmentalFeatures.hvi_score.isnot(None),
+        EnvironmentalFeature.year == year,
+        EnvironmentalFeature.hvi_score.isnot(None),
     )
 
     result = await db.execute(stmt)
@@ -51,22 +51,22 @@ async def hvi_summary(
 
     # Tier distribution
     tier_stmt = select(
-        EnvironmentalFeatures.hvi_tier,
-        func.count(EnvironmentalFeatures.id).label("count"),
+        EnvironmentalFeature.hvi_tier,
+        func.count(EnvironmentalFeature.id).label("count"),
     ).where(
-        EnvironmentalFeatures.year == year,
-        EnvironmentalFeatures.hvi_tier.isnot(None),
-    ).group_by(EnvironmentalFeatures.hvi_tier)
+        EnvironmentalFeature.year == year,
+        EnvironmentalFeature.hvi_tier.isnot(None),
+    ).group_by(EnvironmentalFeature.hvi_tier)
 
     tier_result = await db.execute(tier_stmt)
     tier_distribution = {t.hvi_tier: t.count for t in tier_result.all()}
 
     # Estimate exposed population in high-risk zones
     population_stmt = select(
-        func.sum(EnvironmentalFeatures.population_density).label("total_pop_density"),
+        func.sum(EnvironmentalFeature.population_density).label("total_pop_density"),
     ).where(
-        EnvironmentalFeatures.year == year,
-        EnvironmentalFeatures.hvi_tier.in_(["Stressed", "Emergency"]),
+        EnvironmentalFeature.year == year,
+        EnvironmentalFeature.hvi_tier.in_(["Stressed", "Emergency"]),
     )
     pop_result = await db.execute(population_stmt)
     pop_row = pop_result.one()
@@ -104,23 +104,23 @@ async def hvi_temporal(
     """
     # Base query
     base = select(
-        EnvironmentalFeatures.year,
-        func.avg(EnvironmentalFeatures.hvi_score).label("avg_hvi"),
-        func.max(EnvironmentalFeatures.hvi_score).label("max_hvi"),
-        func.min(EnvironmentalFeatures.hvi_score).label("min_hvi"),
-        func.count(EnvironmentalFeatures.id).label("cell_count"),
+        EnvironmentalFeature.year,
+        func.avg(EnvironmentalFeature.hvi_score).label("avg_hvi"),
+        func.max(EnvironmentalFeature.hvi_score).label("max_hvi"),
+        func.min(EnvironmentalFeature.hvi_score).label("min_hvi"),
+        func.count(EnvironmentalFeature.id).label("cell_count"),
     ).where(
-        EnvironmentalFeatures.hvi_score.isnot(None),
+        EnvironmentalFeature.hvi_score.isnot(None),
     )
 
     if ward_id:
         from app.models.spatial_grid import SpatialGrid
         base = (
-            base.join(SpatialGrid, SpatialGrid.id == EnvironmentalFeatures.grid_id)
+            base.join(SpatialGrid, SpatialGrid.id == EnvironmentalFeature.grid_id)
             .where(SpatialGrid.ward_id == ward_id)
         )
 
-    base = base.group_by(EnvironmentalFeatures.year).order_by(EnvironmentalFeatures.year)
+    base = base.group_by(EnvironmentalFeature.year).order_by(EnvironmentalFeature.year)
 
     result = await db.execute(base)
     rows = result.all()
@@ -129,22 +129,22 @@ async def hvi_temporal(
     for row in rows:
         # Get tier distribution for this year
         tier_stmt = select(
-            EnvironmentalFeatures.hvi_tier,
-            func.count(EnvironmentalFeatures.id).label("count"),
+            EnvironmentalFeature.hvi_tier,
+            func.count(EnvironmentalFeature.id).label("count"),
         ).where(
-            EnvironmentalFeatures.year == row.year,
-            EnvironmentalFeatures.hvi_tier.isnot(None),
+            EnvironmentalFeature.year == row.year,
+            EnvironmentalFeature.hvi_tier.isnot(None),
         )
 
         if ward_id:
             from app.models.spatial_grid import SpatialGrid
             tier_stmt = (
                 tier_stmt.join(
-                    SpatialGrid, SpatialGrid.id == EnvironmentalFeatures.grid_id
+                    SpatialGrid, SpatialGrid.id == EnvironmentalFeature.grid_id
                 ).where(SpatialGrid.ward_id == ward_id)
             )
 
-        tier_stmt = tier_stmt.group_by(EnvironmentalFeatures.hvi_tier)
+        tier_stmt = tier_stmt.group_by(EnvironmentalFeature.hvi_tier)
         tier_result = await db.execute(tier_stmt)
         tiers = {t.hvi_tier: t.count for t in tier_result.all()}
 

@@ -1,0 +1,17 @@
+{
+  "model_version": "v1",
+  "feature_importances": {
+    "ndbi": 0.5526926680655336,
+    "ndvi": 0.26256404816859014,
+    "ndwi": 0.1579573872350742,
+    "tree_canopy_frac": 0.026785896530801934
+  },
+  "feature_columns": [
+    "ndvi",
+    "ndbi",
+    "ndwi",
+    "tree_canopy_frac"
+  ],
+  "target_column": "lst_observed",
+  "note": "Gini importance \u2014 measures mean decrease in impurity. Higher = stronger influence on predicted LST."
+}
