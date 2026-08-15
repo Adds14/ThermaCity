@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { fetchGrid, fetchHVISummary } from '../../services/api';
+import { fetchGrid, fetchHVISummary, fetchReports } from '../../services/api';
 import './HeatMap.css';
 
 const PUNE_CENTER = [18.5204, 73.8567];
@@ -38,6 +38,7 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const gridLayerRef = useRef(null);
+  const reportsLayerRef = useRef(null);
   const abortControllerRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -112,38 +113,38 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
         bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
       }
 
-      const [gridData, summaryData] = await Promise.all([
+      const [gridData, summaryData, reportsData] = await Promise.all([
         fetchGrid(year, 36000, bbox, signal),
         fetchHVISummary(year, signal),
+        fetchReports(true) // true = is_verified
       ]);
 
       setSummary(summaryData);
 
-      // Clear existing grid layer
+      // Clear existing layers
       if (gridLayerRef.current) {
         mapInstance.current.removeLayer(gridLayerRef.current);
+      }
+      if (reportsLayerRef.current) {
+        mapInstance.current.removeLayer(reportsLayerRef.current);
       }
 
       const features = gridData.features || [];
       setCellCount(features.length);
 
-      if (features.length === 0) {
-        setLoading(false);
-        return;
-      }
-
-      // Create GeoJSON layer (uses Canvas renderer from map init)
-      gridLayerRef.current = L.geoJSON(gridData, {
-        style: (feature) => {
-          const tier = feature.properties.hvi_tier || 'Heat-Safe';
-          return {
-            fillColor: getTierColor(tier),
-            fillOpacity: TIER_FILL_OPACITY[tier] || 0.5,
-            color: getTierColor(tier),
-            weight: 0.3,
-            opacity: 0.6,
-          };
-        },
+      if (features.length > 0) {
+        // Create GeoJSON layer (uses Canvas renderer from map init)
+        gridLayerRef.current = L.geoJSON(gridData, {
+          style: (feature) => {
+            const tier = feature.properties.hvi_tier || 'Heat-Safe';
+            return {
+              fillColor: getTierColor(tier),
+              fillOpacity: TIER_FILL_OPACITY[tier] || 0.5,
+              color: getTierColor(tier),
+              weight: 0.3,
+              opacity: 0.6,
+            };
+          },
         onEachFeature: (feature, layer) => {
           const p = feature.properties;
           const tierClass = (p.hvi_tier || 'Heat-Safe').toLowerCase().replace('-', '');
@@ -236,6 +237,55 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
       if (mapInstance.current) {
         gridLayerRef.current.addTo(mapInstance.current);
       }
+      } // End of features.length > 0
+
+      // Now add the reports layer
+      if (reportsData && reportsData.features && reportsData.features.length > 0) {
+        reportsLayerRef.current = L.geoJSON(reportsData, {
+          pointToLayer: (feature, latlng) => {
+            return L.circleMarker(latlng, {
+              radius: 8,
+              fillColor: '#3b82f6',
+              color: '#ffffff',
+              weight: 2,
+              opacity: 1,
+              fillOpacity: 0.8
+            });
+          },
+          onEachFeature: (feature, layer) => {
+            const p = feature.properties;
+            const popupContent = `
+              <div class="cell-popup">
+                <h4 style="margin-bottom:4px; color:#60a5fa;">Verified Report</h4>
+                <div style="font-size:0.85rem; color:#f8fafc; margin-bottom:8px;">
+                  <strong>Category:</strong> ${p.category.replace(/_/g, ' ')}
+                </div>
+                <div class="popup-metrics">
+                  <div class="popup-metric">
+                    <span class="metric-label">Heat Impact</span>
+                    <span class="metric-value">${p.heat_impact_rating}/5</span>
+                  </div>
+                  <div class="popup-metric">
+                    <span class="metric-label">Shade</span>
+                    <span class="metric-value">${p.shade_rating}/5</span>
+                  </div>
+                  <div class="popup-metric">
+                    <span class="metric-label">Water</span>
+                    <span class="metric-value">${p.water_rating}/5</span>
+                  </div>
+                </div>
+                ${p.description ? `<p style="margin-top:8px; font-size:0.8rem; color:#cbd5e1; font-style:italic;">"${p.description}"</p>` : ''}
+              </div>
+            `;
+            layer.bindPopup(popupContent, { maxWidth: 250, className: 'dark-popup' });
+          }
+        });
+
+        if (mapInstance.current) {
+          reportsLayerRef.current.addTo(mapInstance.current);
+        }
+      }
+
       setLoading(false);
     } catch (err) {
       if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {

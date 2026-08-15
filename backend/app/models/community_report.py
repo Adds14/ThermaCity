@@ -61,6 +61,11 @@ class CommunityReport(Base):
     # ── Moderation ────────────────────────────────────────────
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # ── Ratings (0-5) ─────────────────────────────────────────
+    heat_impact_rating: Mapped[int | None] = mapped_column(SmallInteger)
+    shade_rating: Mapped[int | None] = mapped_column(SmallInteger)
+    water_rating: Mapped[int | None] = mapped_column(SmallInteger)
+
     # ── Timestamps ────────────────────────────────────────────
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

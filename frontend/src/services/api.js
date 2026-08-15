@@ -22,12 +22,12 @@ api.interceptors.response.use(
 export async function fetchGrid(year = 2024, limit = 36000, bbox = null, signal = null) {
   const params = { year, limit };
   if (bbox) params.bbox = bbox;
-  const { data } = await api.get('/demo/grid', { params, signal });
+  const { data } = await api.get('/grid', { params, signal });
   return data;
 }
 
 export async function fetchHVISummary(year = 2024, signal = null) {
-  const { data } = await api.get('/demo/summary', { params: { year }, signal });
+  const { data } = await api.get('/hvi/summary', { params: { year }, signal });
   return data;
 }
 
@@ -39,7 +39,26 @@ export async function predictLST(features) {
 }
 
 export async function simulateScenario(params) {
-  const { data } = await api.post('/demo/simulate', params);
+  const { data } = await api.post('/scenario/simulate', params);
+  return data;
+}
+
+// ── Community Reports ───────────────────────────────────────
+
+export async function fetchReports(is_verified = null) {
+  const params = {};
+  if (is_verified !== null) params.is_verified = is_verified;
+  const { data } = await api.get('/reports', { params });
+  return data;
+}
+
+export async function submitReport(payload) {
+  const { data } = await api.post('/reports', payload);
+  return data;
+}
+
+export async function verifyReport(id) {
+  const { data } = await api.patch(`/reports/${id}/verify`);
   return data;
 }
 

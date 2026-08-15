@@ -23,7 +23,7 @@ class Settings(BaseSettings):
 
     # ── Database ──────────────────────────────────────────────
     database_url: str = (
-        "postgresql+asyncpg://postgres:ThermaCity123%40@db.ctjbapfdnyioazajfasp.supabase.co:5432/postgres"
+        "postgresql+asyncpg://postgres:ThermaCity123@db.ctjbapfdnyioazajfasp.supabase.co:5432/postgres"
     )
 
     # Synchronous URL for migrations / scripts (asyncpg → psycopg2)
@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
 
     # CORS origins (comma-separated)
-    cors_origins: str = "http://localhost:5173,http://localhost:3000"
+    cors_origins: str = "http://localhost:5173,http://localhost:5174,http://localhost:3000"
 
     @property
     def cors_origin_list(self) -> list[str]:

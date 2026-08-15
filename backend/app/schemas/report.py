@@ -59,6 +59,27 @@ class ReportCreate(BaseModel):
         description="Perceived severity (1 = minor, 5 = critical).",
         examples=[4],
     )
+    heat_impact_rating: Optional[int] = Field(
+        default=None,
+        ge=0,
+        le=5,
+        description="Rating from 0 (Normal) to 5 (Emergency/Extreme Heat).",
+        examples=[4],
+    )
+    shade_rating: Optional[int] = Field(
+        default=None,
+        ge=0,
+        le=5,
+        description="Rating from 0 (Lots of shade) to 5 (No shade).",
+        examples=[5],
+    )
+    water_rating: Optional[int] = Field(
+        default=None,
+        ge=0,
+        le=5,
+        description="Rating from 0 (Available) to 5 (None available).",
+        examples=[3],
+    )
     reporter_name: Optional[str] = Field(
         default=None,
         max_length=200,
@@ -93,6 +114,10 @@ class ReportResponse(BaseModel):
         description="Severity rating.",
         examples=[3],
     )
+    heat_impact_rating: Optional[int] = Field(default=None)
+    shade_rating: Optional[int] = Field(default=None)
+    water_rating: Optional[int] = Field(default=None)
+    is_verified: bool = Field(default=False)
     reporter_name: Optional[str] = Field(
         default=None,
         description="Name of the reporter (if provided).",
@@ -140,6 +165,10 @@ class ReportFilter(BaseModel):
     category: Optional[ReportCategory] = Field(
         default=None,
         description="Filter by report category.",
+    )
+    is_verified: Optional[bool] = Field(
+        default=None,
+        description="Filter by verification status.",
     )
     ward_id: Optional[int] = Field(
         default=None,

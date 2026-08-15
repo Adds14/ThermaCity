@@ -49,6 +49,9 @@ async def submit_report(
         category=payload.category,
         description=payload.description,
         severity=payload.severity,
+        heat_impact_rating=payload.heat_impact_rating,
+        shade_rating=payload.shade_rating,
+        water_rating=payload.water_rating,
         reporter_name=payload.reporter_name,
         geom=point_geom,
     )
@@ -97,6 +100,7 @@ async def submit_report(
 @router.get("")
 async def list_reports(
     category: str | None = Query(None, description="Filter by report category"),
+    is_verified: bool | None = Query(None, description="Filter by verified status"),
     ward_id: int | None = Query(None, description="Filter by ward ID"),
     limit: int = Query(100, ge=1, le=1000),
     db: AsyncSession = Depends(get_db),
@@ -111,6 +115,8 @@ async def list_reports(
 
     if category:
         stmt = stmt.where(CommunityReport.category == category)
+    if is_verified is not None:
+        stmt = stmt.where(CommunityReport.is_verified == is_verified)
     if ward_id:
         stmt = stmt.where(CommunityReport.ward_id == ward_id)
 
@@ -125,6 +131,10 @@ async def list_reports(
             "category": row.category,
             "description": row.description,
             "severity": row.severity,
+            "heat_impact_rating": row.heat_impact_rating,
+            "shade_rating": row.shade_rating,
+            "water_rating": row.water_rating,
+            "is_verified": row.is_verified,
             "reporter_name": row.reporter_name,
             "created_at": row.created_at.isoformat() if row.created_at else None,
             "ward_name": row.ward.ward_name if row.ward else None,
@@ -199,6 +209,36 @@ def download_pdf_report(
     )
 
 
+@router.patch("/{report_id}/verify", response_model=ReportResponse)
+async def verify_report(
+    report_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Verify a community report (Admin only).
+    """
+    stmt = (
+        select(CommunityReport)
+        .where(CommunityReport.id == report_id)
+        .options(
+            selectinload(CommunityReport.ward),
+            selectinload(CommunityReport.grid_cell)
+        )
+    )
+    result = await db.execute(stmt)
+    report = result.scalar_one_or_none()
+
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    report.is_verified = True
+    await db.commit()
+    await db.refresh(report)
+
+    return _to_response(report)
+
+
+
 def _to_response(report: CommunityReport) -> ReportResponse:
     # Helper to extract lat/lng and map to Pydantic schema
     try:
@@ -213,6 +253,10 @@ def _to_response(report: CommunityReport) -> ReportResponse:
         category=report.category,
         description=report.description,
         severity=report.severity,
+        heat_impact_rating=report.heat_impact_rating,
+        shade_rating=report.shade_rating,
+        water_rating=report.water_rating,
+        is_verified=report.is_verified,
         reporter_name=report.reporter_name,
         created_at=report.created_at,
         latitude=lat,

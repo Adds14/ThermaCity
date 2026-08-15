@@ -144,10 +144,10 @@ Satellite & Climate Data                    Citizens
          │                                     │
          ▼                                     ▼
 ┌──────────────────────────────────────────────────┐
-│              PostgreSQL + PostGIS                 │
+│              Supabase (PostgreSQL + PostGIS)     │
 │  ┌────────────┐ ┌──────────────┐ ┌────────────┐ │
 │  │spatial_grid│ │environmental │ │ community  │ │
-│  │  (30k+     │ │  _features   │ │ _reports   │ │
+│  │  (19k+     │ │  _features   │ │ _reports   │ │
 │  │   cells)   │ │ (per year)   │ │ (citizen)  │ │
 │  └────────────┘ └──────────────┘ └────────────┘ │
 └──────────────────────┬───────────────────────────┘
@@ -158,14 +158,16 @@ Satellite & Climate Data                    Citizens
                │   REST API       │
                │   + ReportLab    │
                │   + HVI Engine   │
-               └────────┬────────┘
-                        │
-                        ▼
-               ┌─────────────────┐
-               │  React + Leaflet │
-               │  Dashboard       │
-               │  (Interactive)   │
-               └─────────────────┘
+               └────┬───────┬────┘
+                    │       │
+           ┌────────┘       └────────┐
+           ▼                         ▼
+  ┌─────────────────┐       ┌─────────────────┐
+  │ Main Public App │       │ Admin Dashboard │
+  │ (React+Leaflet) │       │ (React+Leaflet) │
+  │ View heat map & │       │ Verify citizen  │
+  │ submit reports  │       │ reports securely│
+  └─────────────────┘       └─────────────────┘
 ```
 
 ---
@@ -188,12 +190,13 @@ When a municipal officer opens ThermaCity during a heatwave alert, they see:
 
 ```
 ThermaCity/
-├── frontend/                    # React (Vite) + Leaflet
+├── frontend/                    # Main React (Vite) Public App + Leaflet
+├── admin-frontend/              # Admin React (Vite) Dashboard for report verification
 ├── backend/                     # FastAPI + SQLAlchemy + PostGIS
 │   ├── app/
 │   │   ├── config.py            # Pydantic Settings (HVI weights, DB URL)
 │   │   ├── database.py          # Async SQLAlchemy engine
-│   │   ├── models/              # 5 ORM models with GeoAlchemy2
+│   │   ├── models/              # ORM models with GeoAlchemy2
 │   │   ├── routers/             # REST API endpoints
 │   │   ├── schemas/             # Pydantic request/response models
 │   │   └── services/            # HVI calculator, ML predictor
@@ -216,9 +219,8 @@ ThermaCity/
 │   │   └── export.py            # Canonical reduce_to_grid() function
 │   └── boundaries/
 │       └── pune_boundary.geojson
-├── db/
-│   └── init.sql                 # PostGIS schema (5 tables + triggers)
-└── docker-compose.yml           # PostgreSQL + PostGIS container
+└── db/
+    └── init.sql                 # PostGIS schema (tables + triggers)
 ```
 
 ---
@@ -251,17 +253,11 @@ All raster data is aggregated to a uniform **100×100 m grid** using a [single c
 ```bash
 git clone https://github.com/Adds14/ThermaCity.git
 cd ThermaCity
-cp .env.example .env
-# Edit .env with your database password and Mapbox token
+# Set up .env files in backend/, frontend/, and admin-frontend/
+# using your Supabase database credentials.
 ```
 
-### 2. Start the Database
-
-```bash
-docker compose up -d db
-```
-
-### 3. Run the GEE Pipeline
+### 2. Run the GEE Pipeline
 
 ```bash
 cd gee
@@ -288,7 +284,7 @@ python scripts/train_model.py
 python scripts/evaluate_model.py
 ```
 
-### 5. Start the Backend
+### 4. Start the Backend
 
 ```bash
 cd backend
@@ -296,12 +292,22 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-### 6. Start the Frontend
+### 5. Start the Public Frontend
 
 ```bash
 cd frontend
 npm install
 npm run dev
+# Runs on http://localhost:5173
+```
+
+### 6. Start the Admin Dashboard
+
+```bash
+cd admin-frontend
+npm install
+npm run dev -- --port 5174
+# Runs on http://localhost:5174
 ```
 
 ---
@@ -320,12 +326,11 @@ npm run dev
 
 | Layer | Technology |
 |-------|------------|
-| **Frontend** | React 19 (Vite) + Leaflet (react-leaflet) |
+| **Frontends** | React 19 (Vite) + Leaflet |
 | **Backend** | Python 3.11 + FastAPI |
-| **Database** | PostgreSQL 16 + PostGIS 3.4 |
+| **Database** | Supabase (PostgreSQL 16 + PostGIS) |
 | **ML** | scikit-learn (Random Forest Regressor) |
 | **Remote Sensing** | Google Earth Engine (Python API) |
-| **Containerization** | Docker Compose |
 
 ---
 
