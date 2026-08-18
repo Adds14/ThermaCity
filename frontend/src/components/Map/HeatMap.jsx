@@ -5,6 +5,7 @@ import { fetchGrid, fetchHVISummary, fetchReports } from '../../services/api';
 import './HeatMap.css';
 
 const PUNE_CENTER = [18.5204, 73.8567];
+const PUNE_BOUNDS = [[18.40, 73.72], [18.65, 73.99]]; // SW, NE corners of Pune
 const YEARS = [2021, 2022, 2023, 2024, 2025, 2026];
 
 const TIER_COLORS = {
@@ -45,6 +46,7 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
   const [year, setYear] = useState(externalYear || 2024);
   const [summary, setSummary] = useState(null);
   const [cellCount, setCellCount] = useState(0);
+  const [showHeatmap, setShowHeatmap] = useState(true);
 
   // Sync external year prop
   useEffect(() => {
@@ -53,24 +55,30 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
     }
   }, [externalYear]);
 
-  // Initialize Leaflet map with Canvas renderer
+  // Initialize Leaflet map — bounded to Pune, white tiles
   useEffect(() => {
     if (mapInstance.current) return;
+
+    const puneBounds = L.latLngBounds(PUNE_BOUNDS);
 
     mapInstance.current = L.map(mapRef.current, {
       center: PUNE_CENTER,
       zoom: 12,
+      minZoom: 11,
+      maxZoom: 18,
+      maxBounds: puneBounds.pad(0.1),
+      maxBoundsViscosity: 1.0,
       zoomControl: false,
       attributionControl: false,
-      preferCanvas: true,       // ← Canvas renderer for 35k+ polygons
-      renderer: L.canvas({      // ← Explicit canvas renderer with tolerance
+      preferCanvas: true,
+      renderer: L.canvas({
         padding: 0.5,
         tolerance: 5,
       }),
     });
 
-    // Dark tile layer (CartoDB Dark Matter)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    // Light tile layer (CartoDB Positron — white background)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
       subdomains: 'abcd',
       maxZoom: 19,
@@ -81,6 +89,19 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
 
     // Attribution bottom-right
     L.control.attribution({ position: 'bottomright' }).addTo(mapInstance.current);
+
+    // Anchor marker — "Pune City Center" label so user is never lost
+    const anchorIcon = L.divIcon({
+      html: `<div style="
+        background: #1e293b; color: #fff; padding: 4px 10px; border-radius: 4px;
+        font-size: 12px; font-weight: 600; white-space: nowrap;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3); border: 1px solid #475569;
+      ">📍 Pune City Center</div>`,
+      className: 'pune-anchor-marker',
+      iconSize: [140, 24],
+      iconAnchor: [70, 12],
+    });
+    L.marker(PUNE_CENTER, { icon: anchorIcon, interactive: false }).addTo(mapInstance.current);
 
     return () => {
       if (mapInstance.current) {
@@ -152,7 +173,6 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
           layer.on('click', async () => {
             if (onCellSelect) onCellSelect(p);
 
-            // Initial loading popup
             const initialPopup = `
               <div class="cell-popup">
                 <h4>Cell ${p.cell_id ?? '—'}</h4>
@@ -174,7 +194,6 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
             `;
             layer.bindPopup(initialPopup, { maxWidth: 300, className: 'dark-popup' }).openPopup();
 
-            // Fetch SHAP explainability
             try {
               import('../../services/api').then(async ({ explainCell }) => {
                 const expl = await explainCell({
@@ -234,7 +253,7 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
         },
       });
 
-      if (mapInstance.current) {
+      if (mapInstance.current && showHeatmap) {
         gridLayerRef.current.addTo(mapInstance.current);
       }
       } // End of features.length > 0
@@ -243,14 +262,29 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
       if (reportsData && reportsData.features && reportsData.features.length > 0) {
         reportsLayerRef.current = L.geoJSON(reportsData, {
           pointToLayer: (feature, latlng) => {
-            return L.circleMarker(latlng, {
-              radius: 8,
-              fillColor: '#3b82f6',
-              color: '#ffffff',
-              weight: 2,
-              opacity: 1,
-              fillOpacity: 0.8
+            const iconHtml = `
+              <div style="
+                background: #ef4444; 
+                border: 2px solid white; 
+                color: white; 
+                width: 24px; 
+                height: 24px; 
+                border-radius: 50%; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center; 
+                box-shadow: 0 0 10px rgba(0,0,0,0.5);
+                font-weight: bold;
+                font-size: 14px;
+              ">!</div>
+            `;
+            const customIcon = L.divIcon({
+              html: iconHtml,
+              className: 'custom-report-marker',
+              iconSize: [24, 24],
+              iconAnchor: [12, 12]
             });
+            return L.marker(latlng, { icon: customIcon });
           },
           onEachFeature: (feature, layer) => {
             const p = feature.properties;
@@ -296,12 +330,12 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
       setError(err.message || 'Failed to connect to backend');
       setLoading(false);
     }
-  }, [year, onCellSelect]);
+  }, [year, onCellSelect, showHeatmap]);
 
   // Initial full load when year changes
   useEffect(() => {
     if (mapInstance.current) {
-      loadData(false); // Full load (no bbox) on year change
+      loadData(false);
     }
   }, [year]);
 
@@ -311,8 +345,6 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
 
     const debouncedRefetch = debounce(() => {
       const zoom = mapInstance.current.getZoom();
-      // Only use bbox filtering when zoomed in enough (zoom >= 13)
-      // At city-wide view, load all cells
       if (zoom >= 13) {
         loadData(true);
       }
@@ -328,6 +360,20 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
       }
     };
   }, [loadData]);
+
+  // Toggle heatmap layer visibility
+  useEffect(() => {
+    if (!mapInstance.current || !gridLayerRef.current) return;
+    if (showHeatmap) {
+      if (!mapInstance.current.hasLayer(gridLayerRef.current)) {
+        gridLayerRef.current.addTo(mapInstance.current);
+      }
+    } else {
+      if (mapInstance.current.hasLayer(gridLayerRef.current)) {
+        mapInstance.current.removeLayer(gridLayerRef.current);
+      }
+    }
+  }, [showHeatmap]);
 
   return (
     <div className="map-wrapper">
@@ -351,8 +397,38 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
         </div>
       )}
 
-      {/* KPI Overlay */}
-      {summary && !loading && (
+      {/* Normal / Heatmap toggle — bottom right, below legend */}
+      <div style={{
+        position: 'absolute', bottom: showHeatmap ? 20 : 80, right: 16, zIndex: 1000,
+        display: 'flex', borderRadius: '8px', overflow: 'hidden',
+        border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+      }}>
+        <button
+          onClick={() => setShowHeatmap(false)}
+          style={{
+            padding: '6px 14px', border: 'none', cursor: 'pointer',
+            background: !showHeatmap ? '#1e293b' : '#f1f5f9',
+            color: !showHeatmap ? '#fff' : '#475569',
+            fontWeight: 600, fontSize: '0.8rem'
+          }}
+        >
+          🗺️ Normal
+        </button>
+        <button
+          onClick={() => setShowHeatmap(true)}
+          style={{
+            padding: '6px 14px', border: 'none', cursor: 'pointer',
+            background: showHeatmap ? '#ef4444' : '#f1f5f9',
+            color: showHeatmap ? '#fff' : '#475569',
+            fontWeight: 600, fontSize: '0.8rem'
+          }}
+        >
+          🌡️ Heatmap
+        </button>
+      </div>
+
+      {/* KPI Overlay — only when heatmap is on */}
+      {summary && !loading && showHeatmap && (
         <div className="kpi-overlay glass-panel">
           <div className="kpi-card">
             <span className="label">Avg HVI</span>
@@ -386,16 +462,18 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
         ))}
       </div>
 
-      {/* Legend */}
-      <div className="map-legend glass-panel">
-        <h4>HVI Tier</h4>
-        {Object.entries(TIER_COLORS).map(([tier, color]) => (
-          <div key={tier} className="legend-row">
-            <div className="legend-color" style={{ background: color }} />
-            <span>{tier}</span>
-          </div>
-        ))}
-      </div>
+      {/* Legend — only when heatmap is on */}
+      {showHeatmap && (
+        <div className="map-legend glass-panel">
+          <h4>HVI Tier</h4>
+          {Object.entries(TIER_COLORS).map(([tier, color]) => (
+            <div key={tier} className="legend-row">
+              <div className="legend-color" style={{ background: color }} />
+              <span>{tier}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

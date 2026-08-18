@@ -1,26 +1,26 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle, ShieldAlert, MapPin, Clock, RefreshCw } from 'lucide-react';
-import { fetchUnverifiedReports, verifyReport } from './api';
+import { CheckCircle, ShieldAlert, MapPin, Clock, RefreshCw, Trash2, XCircle } from 'lucide-react';
+import { fetchUnverifiedReports, fetchVerifiedReports, verifyReport, deleteReport } from './api';
 
 function App() {
   const [reports, setReports] = useState([]);
+  const [activeTab, setActiveTab] = useState('pending'); // 'pending' or 'published'
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     loadReports();
-    // Auto-poll every 10 seconds
     const interval = setInterval(() => {
       refreshReports();
     }, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [activeTab]);
 
   const loadReports = async () => {
     setLoading(true);
     try {
-      const data = await fetchUnverifiedReports();
+      const data = activeTab === 'pending' ? await fetchUnverifiedReports() : await fetchVerifiedReports();
       setReports(data.features || []);
       setError(null);
     } catch (err) {
@@ -34,7 +34,7 @@ function App() {
   const refreshReports = async () => {
     setIsRefreshing(true);
     try {
-      const data = await fetchUnverifiedReports();
+      const data = activeTab === 'pending' ? await fetchUnverifiedReports() : await fetchVerifiedReports();
       setReports(data.features || []);
       setError(null);
     } catch (err) {
@@ -47,11 +47,21 @@ function App() {
   const handleVerify = async (id) => {
     try {
       await verifyReport(id);
-      // Remove from list
       setReports(reports.filter(r => r.properties.id !== id));
     } catch (err) {
       console.error("Verification failed", err);
       alert("Failed to verify report");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this report forever?")) return;
+    try {
+      await deleteReport(id);
+      setReports(reports.filter(r => r.properties.id !== id));
+    } catch (err) {
+      console.error("Deletion failed", err);
+      alert("Failed to delete report");
     }
   };
 
@@ -66,7 +76,7 @@ function App() {
       <header className="admin-header">
         <div>
           <h1>ThermaCity Admin Dashboard</h1>
-          <p className="subtitle">Verify crowdsourced heat impact reports before they appear on the public map.</p>
+          <p className="subtitle">Manage crowdsourced heat impact reports.</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#94a3b8' }}>
           <ShieldAlert size={20} />
@@ -75,9 +85,35 @@ function App() {
       </header>
 
       <main className="dashboard-layout">
+        
+        <div className="tabs" style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+          <button 
+            onClick={() => setActiveTab('pending')}
+            style={{
+              padding: '8px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+              background: activeTab === 'pending' ? '#3b82f6' : 'rgba(255,255,255,0.1)',
+              color: '#fff', fontWeight: 'bold'
+            }}
+          >
+            Pending Verifications
+          </button>
+          <button 
+            onClick={() => setActiveTab('published')}
+            style={{
+              padding: '8px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+              background: activeTab === 'published' ? '#10b981' : 'rgba(255,255,255,0.1)',
+              color: '#fff', fontWeight: 'bold'
+            }}
+          >
+            Published Reports
+          </button>
+        </div>
+
         <div className="glass-panel">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-            <h2 style={{ margin: 0, fontSize: '1.2rem' }}>Pending Verifications ({reports.length})</h2>
+            <h2 style={{ margin: 0, fontSize: '1.2rem' }}>
+              {activeTab === 'pending' ? 'Pending Verifications' : 'Published on Map'} ({reports.length})
+            </h2>
             <button 
               onClick={refreshReports} 
               disabled={isRefreshing}
@@ -101,7 +137,7 @@ function App() {
             <div className="empty-state">
               <CheckCircle size={48} style={{margin: '0 auto 16px', color: '#10b981', opacity: 0.5}} />
               <h3>All Caught Up!</h3>
-              <p>There are no pending reports to verify.</p>
+              <p>There are no {activeTab} reports.</p>
             </div>
           ) : (
             <div className="report-grid">
@@ -149,13 +185,32 @@ function App() {
                       </div>
                     )}
 
-                    <button 
-                      className="btn btn-verify" 
-                      onClick={() => handleVerify(p.id)}
-                    >
-                      <CheckCircle size={18} />
-                      Verify & Publish
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+                      {activeTab === 'pending' && (
+                        <button 
+                          className="btn btn-verify" 
+                          onClick={() => handleVerify(p.id)}
+                          style={{ flex: 1 }}
+                        >
+                          <CheckCircle size={18} />
+                          Verify & Publish
+                        </button>
+                      )}
+                      
+                      <button 
+                        className="btn" 
+                        onClick={() => handleDelete(p.id)}
+                        style={{ 
+                          flex: activeTab === 'published' ? 1 : undefined,
+                          background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', 
+                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                        }}
+                      >
+                        {activeTab === 'pending' ? <XCircle size={18} /> : <Trash2 size={18} />}
+                        {activeTab === 'pending' ? 'Reject' : 'Take Down & Delete'}
+                      </button>
+                    </div>
                   </div>
                 );
               })}

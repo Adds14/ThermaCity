@@ -31,4 +31,9 @@ export async function verifyReport(id) {
   return data;
 }
 
+export async function deleteReport(id) {
+  const { data } = await api.delete(`/reports/${id}`);
+  return data;
+}
+
 export default api;

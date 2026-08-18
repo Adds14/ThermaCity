@@ -238,6 +238,25 @@ async def verify_report(
     return _to_response(report)
 
 
+@router.delete("/{report_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_report(
+    report_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Delete a community report (Admin only).
+    """
+    stmt = select(CommunityReport).where(CommunityReport.id == report_id)
+    result = await db.execute(stmt)
+    report = result.scalar_one_or_none()
+
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    await db.delete(report)
+    await db.commit()
+
+
 
 def _to_response(report: CommunityReport) -> ReportResponse:
     # Helper to extract lat/lng and map to Pydantic schema

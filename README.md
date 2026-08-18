@@ -178,11 +178,22 @@ When a municipal officer opens ThermaCity during a heatwave alert, they see:
 
 | View | What It Shows | Who Uses It |
 |------|---------------|-------------|
-| **City-wide Heat Risk Map** | Every 100m block colour-coded by vulnerability using Canvas-rendered Leaflet tiles | Disaster management |
-| **Ward Rankings** | Pune's 47 wards sorted from most to least dangerous | Commissioner's office |
+| **City-wide Heat Risk Map** | Every 100m block colour-coded by vulnerability, bounded to Pune with a clean white basemap | Disaster management |
+| **Normal / Heatmap Toggle** | Switch between a clean street map and the HVI heatmap overlay to orient yourself | All users |
 | **Block-Level Simulation** | "What if we plant 500 trees here?" — block-specific precision before/after risk comparison | Budget proposals |
 | **Automated PDF Reports** | Publication-ready PDF downloads for macro (city-wide) or micro (specific 100m block) risk assessment | Planners / Public |
 | **Temporal Change (2021–2026)** | Year slider showing which areas got worse over time | Urban planners |
+| **Verified Report Markers** | Red "!" markers on the map for admin-verified citizen reports | All users |
+
+### Admin Dashboard (Separate Site)
+
+| Feature | What It Does |
+|---------|-------------|
+| **Pending Verifications** | Review incoming citizen reports with severity, ratings, and location |
+| **Verify & Publish** | Approve a report — it appears as a marker on the public map |
+| **Reject** | Delete spam or misinformation before it reaches the public |
+| **Published Reports** | View all live reports on the map; **Take Down & Delete** any at any time |
+| **Auto-Refresh** | Dashboard polls for new reports every 10 seconds |
 
 ---
 
