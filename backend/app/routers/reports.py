@@ -162,39 +162,57 @@ async def list_reports(
 
 
 @router.get("/download")
-def download_pdf_report(
+async def download_pdf_report(
     year: int = Query(2024, ge=2021, le=2026, description="Data year for the report"),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Generate and download a PDF heat vulnerability assessment report.
-
-    Loads the demo grid data for the requested year, extracts the summary
-    statistics and top-10 highest-risk cells, then streams back a
-    publication-ready PDF document.
     """
-    from app.routers.demo import _load_year
+    # 1. Fetch summary statistics
+    stmt = select(
+        func.count(EnvironmentalFeature.id).label("total_cells"),
+        func.avg(EnvironmentalFeature.hvi_score).label("avg_hvi"),
+        func.max(EnvironmentalFeature.hvi_score).label("max_hvi"),
+        func.min(EnvironmentalFeature.hvi_score).label("min_hvi"),
+        func.avg(EnvironmentalFeature.lst_predicted).label("avg_lst")
+    ).where(EnvironmentalFeature.year == year)
+    
+    result = await db.execute(stmt)
+    row = result.one()
+    
+    tier_stmt = select(
+        EnvironmentalFeature.hvi_tier,
+        func.count(EnvironmentalFeature.id).label("count"),
+    ).where(EnvironmentalFeature.year == year).group_by(EnvironmentalFeature.hvi_tier)
+    tier_result = await db.execute(tier_stmt)
+    tier_distribution = {t.hvi_tier: t.count for t in tier_result.all()}
 
-    try:
-        data = _load_year(year)
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.exception("Failed to load data for PDF report (year=%d)", year)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Could not load data for year {year}: {exc}",
-        )
+    summary = {
+        "year": year,
+        "total_cells": row.total_cells,
+        "avg_hvi": round(float(row.avg_hvi or 0), 2),
+        "max_hvi": round(float(row.max_hvi or 0), 2),
+        "min_hvi": round(float(row.min_hvi or 0), 2),
+        "avg_lst": round(float(row.avg_lst or 0), 2),
+        "tier_distribution": tier_distribution,
+        "emergency_cells": tier_distribution.get("Emergency", 0),
+        "high_risk_cells": tier_distribution.get("Stressed", 0) + tier_distribution.get("Emergency", 0),
+    }
 
-    summary = data["summary"]
-
-    # Extract top 10 cells by HVI score from the cached GeoJSON
-    features = data["geojson"].get("features", [])
-    sorted_cells = sorted(
-        features,
-        key=lambda f: f.get("properties", {}).get("hvi_score", 0),
-        reverse=True,
-    )
-    top_cells = [f["properties"] for f in sorted_cells[:10]]
+    # 2. Fetch top 10 hottest cells
+    hotspots_stmt = select(EnvironmentalFeature).where(
+        EnvironmentalFeature.year == year
+    ).order_by(EnvironmentalFeature.hvi_score.desc()).limit(10)
+    hotspots_result = await db.execute(hotspots_stmt)
+    
+    top_cells = []
+    for f in hotspots_result.scalars().all():
+        top_cells.append({
+            "lst_predicted": f.lst_predicted,
+            "hvi_score": f.hvi_score,
+            "hvi_tier": f.hvi_tier
+        })
 
     pdf_bytes = generate_report(summary=summary, top_cells=top_cells, year=year)
 
@@ -206,6 +224,38 @@ def download_pdf_report(
             "Content-Disposition": f'attachment; filename="{filename}"',
             "Content-Length": str(len(pdf_bytes)),
         },
+    )
+
+from pydantic import BaseModel
+
+class CellReportRequest(BaseModel):
+    cell_id: int
+    year: int
+    baseline_lst: float
+    baseline_ndvi: float
+    baseline_ndbi: float
+    baseline_hvi_score: float
+    baseline_hvi_tier: str
+    simulated_lst: float | None = None
+    simulated_hvi_tier: str | None = None
+    lst_delta: float | None = None
+    applied_canopy_delta: float | None = None
+    applied_ndbi_delta: float | None = None
+
+from fastapi.responses import Response
+
+@router.post("/cell")
+def generate_cell_pdf(req: CellReportRequest):
+    """Generate a PDF report for a specific grid cell."""
+    from app.services.report_generator import generate_cell_report
+    pdf_bytes = generate_cell_report(req.model_dump())
+    
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=thermacity_block_{req.cell_id}.pdf"
+        }
     )
 
 

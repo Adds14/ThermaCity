@@ -42,7 +42,7 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [year, setYear] = useState(externalYear || 2024);
+  const [year, setYear] = useState(externalYear || 2026);
   const [summary, setSummary] = useState(null);
   const [cellCount, setCellCount] = useState(0);
   const [showHeatmap, setShowHeatmap] = useState(true);
@@ -58,6 +58,19 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
       setYear(externalYear);
     }
   }, [externalYear]);
+
+  // Read URL params for auto-drilldown
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const wardId = parseInt(params.get('ward'));
+    if (wardId) {
+      const ward = WARDS.find(w => w.id === wardId);
+      if (ward) {
+        setSelectedWard(ward);
+        setViewMode('blocks');
+      }
+    }
+  }, []);
 
   // Initialize Leaflet map
   useEffect(() => {
@@ -79,8 +92,8 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
     });
 
     // Light tile layer (CartoDB Positron)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
       subdomains: 'abcd',
       maxZoom: 16,
     }).addTo(mapInstance.current);
@@ -240,8 +253,8 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
     const signal = abortControllerRef.current.signal;
 
     try {
-      // ~1 km bbox around ward center
-      const R = 0.009;
+      // ~1.5 km bbox around ward center
+      const R = 0.015;
       const bbox = `${ward.lng - R},${ward.lat - R},${ward.lng + R},${ward.lat + R}`;
 
       const [gridData, reportsData] = await Promise.all([

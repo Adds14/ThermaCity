@@ -3,7 +3,7 @@ import { Sliders, Sun, TreeDeciduous, Download } from 'lucide-react';
 import { simulateScenario, downloadCellReport } from '../../services/api';
 import './ScenarioPanel.css';
 
-export default function ScenarioPanel({ year = 2024, selectedCell = null }) {
+export default function ScenarioPanel({ year = 2026, selectedCell = null }) {
   const [canopyDelta, setCanopyDelta] = useState(0);
   const [ndbiDelta, setNdbiDelta] = useState(0);
   const [loading, setLoading] = useState(false);

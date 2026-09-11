@@ -108,14 +108,13 @@ def create_app() -> FastAPI:
     )
 
     # ── Register Routers ──
-    from app.routers import grid, hvi, reports, scenario, wards, demo
+    from app.routers import grid, hvi, reports, scenario, wards
 
     app.include_router(grid.router, prefix=settings.api_v1_prefix)
     app.include_router(hvi.router, prefix=settings.api_v1_prefix)
     app.include_router(wards.router, prefix=settings.api_v1_prefix)
     app.include_router(reports.router, prefix=settings.api_v1_prefix)
     app.include_router(scenario.router, prefix=settings.api_v1_prefix)
-    app.include_router(demo.router, prefix=settings.api_v1_prefix)
 
     # ── Health check ──
     @app.get("/health", tags=["System"])

@@ -5,7 +5,7 @@ const WARDS = [
   { id: 1, name: 'Kalas–Dhanori–Lohegaon', lat: 18.5838, lng: 73.9057 },
   { id: 2, name: 'Phulenagar–Nagpur Chawl', lat: 18.5507, lng: 73.8626 },
   { id: 3, name: 'Viman Nagar–Lohegaon', lat: 18.5674, lng: 73.9147 },
-  { id: 4, name: 'Kharadi–Wagholi', lat: 18.5562, lng: 73.9608 },
+  { id: 4, name: 'Kharadi–Wagholi', lat: 18.5562, lng: 73.9450 },
   { id: 5, name: 'Kalyani Nagar–Vadgaonsheri', lat: 18.5508, lng: 73.9140 },
   { id: 6, name: 'Yerawada–Gandhinagar', lat: 18.5481, lng: 73.8795 },
   { id: 7, name: 'Gokhalenagar–Wakdewadi', lat: 18.5397, lng: 73.8320 },

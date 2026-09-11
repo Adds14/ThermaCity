@@ -161,3 +161,161 @@ async def simulate_scenario(
         ))
 
     return final_results
+
+
+from pydantic import BaseModel
+
+class SimulateRequest(BaseModel):
+    ndvi_delta: float = 0.0
+    ndbi_delta: float = 0.0
+    ndwi_delta: float = 0.0
+    tree_canopy_delta: float = 0.0
+    year: int = 2024
+    baseline_ndvi: float | None = None
+    baseline_ndbi: float | None = None
+    baseline_ndwi: float | None = None
+    baseline_tree_canopy_frac: float | None = None
+    baseline_lst: float | None = None
+    baseline_hvi_score: float | None = None
+    baseline_hvi_tier: str | None = None
+
+@router.post("/simulate_custom")
+async def simulate_custom(
+    req: SimulateRequest,
+    db: AsyncSession = Depends(get_db),
+    predictor: MLPredictor | None = Depends(get_ml_predictor),
+):
+    """Run a what-if scenario against a specific cell baseline or city average (used by UI Panel)."""
+    from sqlalchemy import func
+    
+    if not predictor:
+        raise HTTPException(status_code=503, detail="ML model not loaded")
+
+    # Get ranges and city average from DB
+    stmt = select(
+        func.avg(EnvironmentalFeature.lst_predicted).label("lst_avg"),
+        func.avg(EnvironmentalFeature.ndvi).label("ndvi_avg"),
+        func.avg(EnvironmentalFeature.ndbi).label("ndbi_avg"),
+        func.avg(EnvironmentalFeature.ndwi).label("ndwi_avg"),
+        func.avg(EnvironmentalFeature.tree_canopy_frac).label("canopy_avg"),
+        func.avg(EnvironmentalFeature.hvi_score).label("hvi_avg"),
+        func.min(EnvironmentalFeature.lst_predicted).label("lst_min"),
+        func.max(EnvironmentalFeature.lst_predicted).label("lst_max"),
+        func.min(EnvironmentalFeature.tree_canopy_frac).label("canopy_min"),
+        func.max(EnvironmentalFeature.tree_canopy_frac).label("canopy_max"),
+    ).where(EnvironmentalFeature.year == req.year)
+    
+    result = await db.execute(stmt)
+    stats = result.one()
+    
+    ranges = {
+        "lst_min": float(stats.lst_min),
+        "lst_max": float(stats.lst_max),
+        "canopy_min": float(stats.canopy_min),
+        "canopy_max": float(stats.canopy_max),
+    }
+
+    if req.baseline_ndvi is not None:
+        baseline = {
+            "ndvi": req.baseline_ndvi,
+            "ndbi": req.baseline_ndbi or 0.0,
+            "ndwi": req.baseline_ndwi or 0.0,
+            "tree_canopy_frac": req.baseline_tree_canopy_frac or 0.0,
+        }
+    else:
+        baseline = {
+            "ndvi": float(stats.ndvi_avg),
+            "ndbi": float(stats.ndbi_avg),
+            "ndwi": float(stats.ndwi_avg),
+            "tree_canopy_frac": float(stats.canopy_avg),
+        }
+
+    # Baseline LST
+    if req.baseline_lst is not None:
+        baseline_lst = req.baseline_lst
+    else:
+        baseline_lst = predictor.predict_lst(baseline)
+
+    # Simulated prediction
+    sim_features = {
+        "ndvi": baseline["ndvi"] + req.ndvi_delta,
+        "ndbi": baseline["ndbi"] + req.ndbi_delta,
+        "ndwi": baseline["ndwi"] + req.ndwi_delta,
+        "tree_canopy_frac": max(0.0, min(1.0, baseline["tree_canopy_frac"] + req.tree_canopy_delta)),
+    }
+    sim_lst = predictor.predict_lst(sim_features)
+
+    # Calculate delta for LST and Canopy
+    lst_delta = sim_lst - baseline_lst
+    canopy_delta = sim_features["tree_canopy_frac"] - baseline["tree_canopy_frac"]
+
+    lst_range = max(1e-12, ranges["lst_max"] - ranges["lst_min"])
+    canopy_range = max(1e-12, ranges["canopy_max"] - ranges["canopy_min"])
+
+    # Normalised deltas
+    delta_norm_lst = lst_delta / lst_range
+    delta_norm_canopy = -canopy_delta / canopy_range
+
+    hvi_score_delta = (
+        0.35 * delta_norm_lst +
+        0.20 * delta_norm_canopy
+    ) * 100.0
+
+    # Determine baseline score and tier
+    if req.baseline_hvi_score is not None:
+        baseline_score = req.baseline_hvi_score
+        baseline_tier = req.baseline_hvi_tier or HVICalculator._assign_tier(baseline_score)
+    else:
+        baseline_score = float(stats.hvi_avg)
+        baseline_tier = HVICalculator._assign_tier(baseline_score)
+
+    sim_score = max(0.0, min(100.0, baseline_score + hvi_score_delta))
+    sim_tier = HVICalculator._assign_tier(sim_score)
+
+    return {
+        "baseline": {
+            "lst": round(baseline_lst, 2),
+            "hvi_score": round(baseline_score, 2),
+            "hvi_tier": baseline_tier,
+        },
+        "simulated": {
+            "lst": round(sim_lst, 2),
+            "hvi_score": round(sim_score, 2),
+            "hvi_tier": sim_tier,
+        },
+        "lst_delta": round(float(lst_delta), 2),
+        "hvi_delta": round(float(hvi_score_delta), 2),
+    }
+
+class PredictRequest(BaseModel):
+    ndvi: float
+    ndbi: float
+    ndwi: float
+    tree_canopy_frac: float
+
+_explainer_instance = None
+
+def _get_explainer():
+    """Lazily initialize the SHAP explainer."""
+    global _explainer_instance
+    if _explainer_instance is None:
+        from app.main import get_ml_predictor
+        predictor = get_ml_predictor()
+        if predictor:
+            from app.services.explainability import Explainer
+            _explainer_instance = Explainer(predictor)
+    return _explainer_instance
+
+
+@router.post("/explain")
+def explain_cell(req: PredictRequest):
+    """Explain why a cell has its predicted temperature using SHAP."""
+    explainer = _get_explainer()
+    if not explainer:
+        raise HTTPException(status_code=503, detail="SHAP explainer not available")
+
+    result = explainer.explain_cell(req.model_dump())
+    if "error" in result:
+        raise HTTPException(status_code=500, detail=result["error"])
+
+    return result

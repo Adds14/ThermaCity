@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Map, Activity, AlertTriangle, Layers } from 'lucide-react';
 import './DashboardLayout.css';
 
 export default function DashboardLayout() {
+  const [year, setYear] = useState(2026);
   const location = useLocation();
 
   return (

@@ -4,7 +4,7 @@ import ScenarioPanel from '../components/Map/ScenarioPanel';
 import './MapView.css';
 
 export default function MapView() {
-  const [selectedYear, setSelectedYear] = useState(2024);
+  const [selectedYear, setSelectedYear] = useState(2026);
   const [selectedCell, setSelectedCell] = useState(null);
 
   return (

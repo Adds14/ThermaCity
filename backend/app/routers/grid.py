@@ -88,6 +88,7 @@ async def get_grid(
     features = []
     for grid_cell, env_features in rows:
         properties = {
+            "cell_id": grid_cell.id,
             "cell_code": grid_cell.cell_code,
             "ward_id": grid_cell.ward_id,
             "year": year,

@@ -9,26 +9,29 @@ export default function WardRankings() {
 
   // Mock data until PostGIS API is accessible
   useEffect(() => {
-    setTimeout(() => {
-      setWards([
-        { id: 1, name: 'Bhavani Peth', avg_hvi: 84.5, pop_density: 35000, emergency_cells: 45 },
-        { id: 2, name: 'Kasba-Vishrambaug Wada', avg_hvi: 81.2, pop_density: 42000, emergency_cells: 38 },
-        { id: 3, name: 'Shivajinagar-Ghole Road', avg_hvi: 76.8, pop_density: 28000, emergency_cells: 21 },
-        { id: 4, name: 'Dhole Patil Road', avg_hvi: 71.3, pop_density: 22000, emergency_cells: 18 },
-        { id: 5, name: 'Yerawada-Kalas-Dhanori', avg_hvi: 68.9, pop_density: 29000, emergency_cells: 15 },
-        { id: 6, name: 'Hadapsar-Mundhwa', avg_hvi: 65.4, pop_density: 31000, emergency_cells: 12 },
-        { id: 7, name: 'Nagar Road-Vadgaon Sheri', avg_hvi: 64.1, pop_density: 26000, emergency_cells: 10 },
-        { id: 8, name: 'Kothrud-Bavdhan', avg_hvi: 62.4, pop_density: 25000, emergency_cells: 5 },
-        { id: 9, name: 'Warje-Karvenagar', avg_hvi: 59.7, pop_density: 23000, emergency_cells: 3 },
-        { id: 10, name: 'Dhankawadi-Sahakarnagar', avg_hvi: 58.2, pop_density: 30000, emergency_cells: 2 },
-        { id: 11, name: 'Wanawadi-Ramtekdi', avg_hvi: 57.5, pop_density: 21000, emergency_cells: 1 },
-        { id: 12, name: 'Kondhwa-Yewalewadi', avg_hvi: 56.1, pop_density: 19000, emergency_cells: 1 },
-        { id: 13, name: 'Sinhagad Road', avg_hvi: 55.8, pop_density: 24000, emergency_cells: 0 },
-        { id: 14, name: 'Aundh-Baner', avg_hvi: 55.1, pop_density: 18000, emergency_cells: 0 },
-        { id: 15, name: 'Bibwewadi', avg_hvi: 53.4, pop_density: 27000, emergency_cells: 0 },
-      ]);
-      setLoading(false);
-    }, 800);
+    let active = true;
+    const loadWards = async () => {
+      try {
+        const { fetchWardSummary } = await import('../../services/api');
+        const data = await fetchWardSummary(2026);
+        if (active) {
+          // data format from api: ward_id, ward_name, avg_hvi, hvi_tier, cell_count, avg_lst
+          setWards(data.map((w, index) => ({
+            id: w.ward_id,
+            name: w.ward_name,
+            avg_hvi: w.avg_hvi,
+            pop_density: 25000, // DB doesn't pass pop_density right now in the mapper
+            emergency_cells: w.hvi_tier === 'Emergency' || w.hvi_tier === 'Stressed' ? Math.floor(w.cell_count * 0.1) : 0
+          })));
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("Failed to fetch ward rankings:", err);
+        if (active) setLoading(false);
+      }
+    };
+    loadWards();
+    return () => { active = false; };
   }, []);
 
   const getTierClass = (score) => {
@@ -93,7 +96,7 @@ export default function WardRankings() {
                 </td>
                 <td>{ward.pop_density.toLocaleString()}</td>
                 <td>
-                  <Link to="/" className="btn btn-primary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <Link to={`/?ward=${ward.id}`} className="btn btn-primary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                     <Map size={14} /> View Map
                   </Link>
                 </td>

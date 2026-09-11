@@ -1,0 +1,28 @@
+name: Keep Supabase Awake
+
+on:
+  schedule:
+    # Run every 2 days at midnight
+    - cron: "0 0 */2 * *"
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  ping-database:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install PostgreSQL Client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+        
+      - name: Ping Supabase Database
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "Error: SUPABASE_DB_URL secret is not set!"
+            echo "Please go to GitHub Repository Settings -> Secrets and Variables -> Actions"
+            echo "And add a New Repository Secret named SUPABASE_DB_URL with your Supabase connection string."
+            exit 1
+          fi
+          echo "Pinging database to keep it awake..."
+          psql "$DATABASE_URL" -c "SELECT 1;"
+          echo "Database pinged successfully!"

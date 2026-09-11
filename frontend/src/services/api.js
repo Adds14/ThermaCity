@@ -19,32 +19,52 @@ api.interceptors.response.use(
 
 // ── Grid & Summary ──────────────────────────────────────────
 
-export async function fetchGrid(year = 2024, limit = 36000, bbox = null, signal = null) {
+export async function fetchGrid(year = 2026, limit = 5000, bbox = null, signal = null) {
   const params = { year, limit };
   if (bbox) params.bbox = bbox;
-  const { data } = await api.get('/demo/grid', { params, signal });
+  const { data } = await api.get('/grid', { params, signal });
   return data;
 }
 
-export async function fetchHVISummary(year = 2024, signal = null) {
-  const { data } = await api.get('/demo/summary', { params: { year }, signal });
+import WARDS from '../data/wards';
+
+export async function fetchHVISummary(year = 2026, signal = null) {
+  const { data } = await api.get('/hvi/summary', { params: { year }, signal });
   return data;
 }
 
-export async function fetchWardSummary(year = 2024, signal = null) {
-  const { data } = await api.get('/demo/ward-summary', { params: { year }, signal });
-  return data;
+export async function fetchWardSummary(year = 2026, signal = null) {
+  const { data } = await api.get('/wards', { params: { year }, signal });
+  // Map the DB response format to what HeatMap.jsx expects
+  if (data && data.rankings) {
+    return data.rankings.map(w => {
+      const coordInfo = WARDS.find(cw => cw.id === w.ward_id) || { lat: 18.5204, lng: 73.8567 };
+      return {
+        ward_id: w.ward_id,
+        ward_name: w.ward_name,
+        avg_hvi: w.avg_hvi,
+        hvi_tier: w.dominant_tier,
+        cell_count: w.cell_count,
+        avg_lst: w.avg_lst_celsius || w.avg_lst,
+        lat: coordInfo.lat,
+        lng: coordInfo.lng
+      };
+    });
+  }
+  return [];
 }
 
 // ── Prediction & Simulation ─────────────────────────────────
 
 export async function predictLST(features) {
-  const { data } = await api.post('/demo/predict', features);
+  const { data } = await api.post('/scenario/predict', features);
   return data;
 }
 
 export async function simulateScenario(params) {
-  const { data } = await api.post('/demo/simulate', params);
+  // We will port the exact simulate endpoint from demo.py into scenario.py
+  // so the payload remains identical.
+  const { data } = await api.post('/scenario/simulate_custom', params);
   return data;
 }
 
@@ -70,7 +90,7 @@ export async function verifyReport(id) {
 // ── SHAP Explainability ─────────────────────────────────────
 
 export async function explainCell(features) {
-  const { data } = await api.post('/demo/explain', features);
+  const { data } = await api.post('/scenario/explain', features);
   return data;
 }
 
@@ -94,7 +114,7 @@ export async function downloadReport(year = 2024) {
 }
 
 export async function downloadCellReport(payload) {
-  const response = await api.post('/demo/report/cell', payload, {
+  const response = await api.post('/reports/cell', payload, {
     responseType: 'blob',
   });
   
