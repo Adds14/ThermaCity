@@ -28,6 +28,7 @@ export default function ScenarioPanel({ year = 2024, selectedCell = null }) {
         payload.baseline_ndwi = selectedCell.ndwi;
         payload.baseline_tree_canopy_frac = selectedCell.tree_canopy_frac;
         payload.baseline_lst = selectedCell.lst_predicted;
+        payload.baseline_hvi_score = selectedCell.hvi_score;
         payload.baseline_hvi_tier = selectedCell.hvi_tier;
       }
 

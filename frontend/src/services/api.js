@@ -22,12 +22,17 @@ api.interceptors.response.use(
 export async function fetchGrid(year = 2024, limit = 36000, bbox = null, signal = null) {
   const params = { year, limit };
   if (bbox) params.bbox = bbox;
-  const { data } = await api.get('/grid', { params, signal });
+  const { data } = await api.get('/demo/grid', { params, signal });
   return data;
 }
 
 export async function fetchHVISummary(year = 2024, signal = null) {
-  const { data } = await api.get('/hvi/summary', { params: { year }, signal });
+  const { data } = await api.get('/demo/summary', { params: { year }, signal });
+  return data;
+}
+
+export async function fetchWardSummary(year = 2024, signal = null) {
+  const { data } = await api.get('/demo/ward-summary', { params: { year }, signal });
   return data;
 }
 
@@ -39,7 +44,7 @@ export async function predictLST(features) {
 }
 
 export async function simulateScenario(params) {
-  const { data } = await api.post('/scenario/simulate', params);
+  const { data } = await api.post('/demo/simulate', params);
   return data;
 }
 

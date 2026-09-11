@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { fetchGrid, fetchHVISummary, fetchReports } from '../../services/api';
+import { fetchGrid, fetchHVISummary, fetchReports, fetchWardSummary } from '../../services/api';
+import WARDS from '../../data/wards';
 import './HeatMap.css';
 
 const PUNE_CENTER = [18.5204, 73.8567];
-const PUNE_BOUNDS = [[18.40, 73.72], [18.65, 73.99]]; // SW, NE corners of Pune
+const PUNE_BOUNDS = [[18.40, 73.72], [18.65, 73.99]];
 const YEARS = [2021, 2022, 2023, 2024, 2025, 2026];
 
 const TIER_COLORS = {
@@ -26,27 +27,30 @@ function getTierColor(tier) {
   return TIER_COLORS[tier] || '#334155';
 }
 
-// Debounce utility
-function debounce(fn, ms) {
-  let timer;
-  return (...args) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), ms);
-  };
-}
-
 export default function HeatMap({ year: externalYear, onCellSelect }) {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const gridLayerRef = useRef(null);
   const reportsLayerRef = useRef(null);
+  const wardLayerRef = useRef(null);
   const abortControllerRef = useRef(null);
+
+  const onCellSelectRef = useRef(onCellSelect);
+  useEffect(() => {
+    onCellSelectRef.current = onCellSelect;
+  }, [onCellSelect]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [year, setYear] = useState(externalYear || 2024);
   const [summary, setSummary] = useState(null);
   const [cellCount, setCellCount] = useState(0);
   const [showHeatmap, setShowHeatmap] = useState(true);
+
+  // Two-level navigation state
+  const [viewMode, setViewMode] = useState('wards'); // 'wards' or 'blocks'
+  const [selectedWard, setSelectedWard] = useState(null);
+  const [wardSummaries, setWardSummaries] = useState([]);
 
   // Sync external year prop
   useEffect(() => {
@@ -55,7 +59,7 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
     }
   }, [externalYear]);
 
-  // Initialize Leaflet map — bounded to Pune, white tiles
+  // Initialize Leaflet map
   useEffect(() => {
     if (mapInstance.current) return;
 
@@ -65,43 +69,24 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
       center: PUNE_CENTER,
       zoom: 12,
       minZoom: 11,
-      maxZoom: 18,
+      maxZoom: 16,
       maxBounds: puneBounds.pad(0.1),
       maxBoundsViscosity: 1.0,
       zoomControl: false,
       attributionControl: false,
       preferCanvas: true,
-      renderer: L.canvas({
-        padding: 0.5,
-        tolerance: 5,
-      }),
+      renderer: L.canvas({ padding: 0.5, tolerance: 5 }),
     });
 
-    // Light tile layer (CartoDB Positron — white background)
+    // Light tile layer (CartoDB Positron)
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
       subdomains: 'abcd',
-      maxZoom: 19,
+      maxZoom: 16,
     }).addTo(mapInstance.current);
 
-    // Add zoom control to top-right
     L.control.zoom({ position: 'topright' }).addTo(mapInstance.current);
-
-    // Attribution bottom-right
     L.control.attribution({ position: 'bottomright' }).addTo(mapInstance.current);
-
-    // Anchor marker — "Pune City Center" label so user is never lost
-    const anchorIcon = L.divIcon({
-      html: `<div style="
-        background: #1e293b; color: #fff; padding: 4px 10px; border-radius: 4px;
-        font-size: 12px; font-weight: 600; white-space: nowrap;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.3); border: 1px solid #475569;
-      ">📍 Pune City Center</div>`,
-      className: 'pune-anchor-marker',
-      iconSize: [140, 24],
-      iconAnchor: [70, 12],
-    });
-    L.marker(PUNE_CENTER, { icon: anchorIcon, interactive: false }).addTo(mapInstance.current);
 
     return () => {
       if (mapInstance.current) {
@@ -114,47 +99,174 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
     };
   }, []);
 
-  // Load grid data — fetches from /demo/grid with optional bbox
-  const loadData = useCallback(async (useBbox = false) => {
+  // ── Load ward markers (Level 1) ──────────────────────────
+  const loadWards = useCallback(async () => {
     setLoading(true);
     setError(null);
 
-    // Cancel any previous requests
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    abortControllerRef.current = new AbortController();
+
+    try {
+      const [wardData, reportsData] = await Promise.all([
+        fetchWardSummary(year, abortControllerRef.current.signal),
+        fetchReports(true),
+      ]);
+
+      setWardSummaries(wardData);
+
+      // Clear existing layers
+      if (gridLayerRef.current && mapInstance.current) {
+        mapInstance.current.removeLayer(gridLayerRef.current);
+        gridLayerRef.current = null;
+      }
+      if (wardLayerRef.current && mapInstance.current) {
+        mapInstance.current.removeLayer(wardLayerRef.current);
+        wardLayerRef.current = null;
+      }
+      if (reportsLayerRef.current && mapInstance.current) {
+        mapInstance.current.removeLayer(reportsLayerRef.current);
+        reportsLayerRef.current = null;
+      }
+
+      // Create ward markers layer
+      wardLayerRef.current = L.layerGroup();
+
+      wardData.forEach((ward) => {
+        const tier = ward.hvi_tier || 'Heat-Safe';
+        const color = getTierColor(tier);
+
+        // Circle marker for each ward
+        const circle = L.circleMarker([ward.lat, ward.lng], {
+          radius: 16,
+          fillColor: color,
+          color: '#1e293b',
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.85,
+        });
+
+        // Ward number label
+        const label = L.divIcon({
+          html: `<div style="
+            color: #fff; font-size: 11px; font-weight: 700;
+            width: 32px; height: 32px; display: flex;
+            align-items: center; justify-content: center;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+          ">${ward.ward_id}</div>`,
+          className: 'ward-number-label',
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+        });
+        const labelMarker = L.marker([ward.lat, ward.lng], { icon: label, interactive: false });
+
+        // Popup
+        const popupContent = `
+          <div class="cell-popup">
+            <h4 style="margin-bottom:2px;">Ward ${ward.ward_id}</h4>
+            <div style="font-size:0.85rem; color:#94a3b8; margin-bottom:8px;">${ward.ward_name}</div>
+            <div class="popup-score">
+              <span class="big" style="color: ${color}">${ward.avg_hvi.toFixed(1)}</span>
+              <span class="badge badge-${tier.toLowerCase().replace('-', '')}">${tier}</span>
+            </div>
+            <div class="popup-metrics">
+              <div class="popup-metric">
+                <span class="metric-label">Avg LST</span>
+                <span class="metric-value">${ward.avg_lst.toFixed(1)}°C</span>
+              </div>
+              <div class="popup-metric">
+                <span class="metric-label">Blocks</span>
+                <span class="metric-value">${ward.cell_count}</span>
+              </div>
+            </div>
+            <button onclick="window.__drillIntoWard(${ward.ward_id})" style="
+              margin-top: 10px; width: 100%; padding: 6px 12px; border: none;
+              background: #3b82f6; color: #fff; border-radius: 6px;
+              cursor: pointer; font-weight: 600; font-size: 0.85rem;
+            ">View Blocks →</button>
+          </div>
+        `;
+        circle.bindPopup(popupContent, { maxWidth: 250, className: 'dark-popup' });
+
+        // Hover effect
+        circle.on('mouseover', () => {
+          circle.setStyle({ weight: 3, fillOpacity: 1, radius: 20 });
+        });
+        circle.on('mouseout', () => {
+          circle.setStyle({ weight: 2, fillOpacity: 0.85, radius: 16 });
+        });
+
+        wardLayerRef.current.addLayer(circle);
+        wardLayerRef.current.addLayer(labelMarker);
+      });
+
+      if (mapInstance.current && showHeatmap) {
+        wardLayerRef.current.addTo(mapInstance.current);
+      }
+
+      // Add reports layer
+      addReportsLayer(reportsData);
+
+      // Compute city-wide summary from ward data
+      if (wardData.length > 0) {
+        const totalCells = wardData.reduce((s, w) => s + w.cell_count, 0);
+        const avgHvi = wardData.reduce((s, w) => s + w.avg_hvi * w.cell_count, 0) / (totalCells || 1);
+        const tierDist = {};
+        wardData.forEach(w => { tierDist[w.hvi_tier] = (tierDist[w.hvi_tier] || 0) + 1; });
+        setSummary({
+          avg_hvi: avgHvi,
+          tier_distribution: tierDist,
+          total_cells: totalCells,
+        });
+        setCellCount(totalCells);
+      }
+
+      setLoading(false);
+    } catch (err) {
+      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') return;
+      console.error('Failed to load ward data:', err);
+      setError(err.message || 'Failed to connect to backend');
+      setLoading(false);
     }
+  }, [year, showHeatmap]);
+
+  // ── Load grid blocks for a specific ward (Level 2) ───────
+  const loadWardBlocks = useCallback(async (ward) => {
+    setLoading(true);
+    setError(null);
+
+    if (abortControllerRef.current) abortControllerRef.current.abort();
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
 
     try {
-      // Get map bounds for viewport-based filtering
-      let bbox = null;
-      if (useBbox && mapInstance.current) {
-        const bounds = mapInstance.current.getBounds();
-        bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
-      }
+      // ~1 km bbox around ward center
+      const R = 0.009;
+      const bbox = `${ward.lng - R},${ward.lat - R},${ward.lng + R},${ward.lat + R}`;
 
-      const [gridData, summaryData, reportsData] = await Promise.all([
-        fetchGrid(year, 36000, bbox, signal),
-        fetchHVISummary(year, signal),
-        fetchReports(true) // true = is_verified
+      const [gridData, reportsData] = await Promise.all([
+        fetchGrid(year, 5000, bbox, signal),
+        fetchReports(true),
       ]);
 
-      setSummary(summaryData);
-
-      // Clear existing layers
-      if (gridLayerRef.current) {
-        mapInstance.current.removeLayer(gridLayerRef.current);
+      // Clear ward markers
+      if (wardLayerRef.current && mapInstance.current) {
+        mapInstance.current.removeLayer(wardLayerRef.current);
+        wardLayerRef.current = null;
       }
-      if (reportsLayerRef.current) {
+      if (gridLayerRef.current && mapInstance.current) {
+        mapInstance.current.removeLayer(gridLayerRef.current);
+        gridLayerRef.current = null;
+      }
+      if (reportsLayerRef.current && mapInstance.current) {
         mapInstance.current.removeLayer(reportsLayerRef.current);
+        reportsLayerRef.current = null;
       }
 
       const features = gridData.features || [];
       setCellCount(features.length);
 
       if (features.length > 0) {
-        // Create GeoJSON layer (uses Canvas renderer from map init)
         gridLayerRef.current = L.geoJSON(gridData, {
           style: (feature) => {
             const tier = feature.properties.hvi_tier || 'Heat-Safe';
@@ -166,214 +278,207 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
               opacity: 0.6,
             };
           },
-        onEachFeature: (feature, layer) => {
-          const p = feature.properties;
-          const tierClass = (p.hvi_tier || 'Heat-Safe').toLowerCase().replace('-', '');
-
-          layer.on('click', async () => {
-            if (onCellSelect) onCellSelect(p);
-
-            const initialPopup = `
-              <div class="cell-popup">
-                <h4>Cell ${p.cell_id ?? '—'}</h4>
-                <div class="popup-score">
-                  <span class="big" style="color: ${getTierColor(p.hvi_tier)}">${(p.hvi_score ?? 0).toFixed(1)}</span>
-                  <span class="badge badge-${tierClass}">${p.hvi_tier || '—'}</span>
-                </div>
-                <div class="popup-metrics">
-                  <div class="popup-metric">
-                    <span class="metric-label">LST</span>
-                    <span class="metric-value">${(p.lst_predicted ?? p.lst_observed ?? 0).toFixed(1)}°C</span>
-                  </div>
-                </div>
-                <div class="shap-container">
-                  <div class="spinner small"></div>
-                  <span class="loading-text">Analyzing risk factors...</span>
-                </div>
-              </div>
-            `;
-            layer.bindPopup(initialPopup, { maxWidth: 300, className: 'dark-popup' }).openPopup();
-
-            try {
-              import('../../services/api').then(async ({ explainCell }) => {
-                const expl = await explainCell({
-                  ndvi: p.ndvi,
-                  ndbi: p.ndbi,
-                  ndwi: p.ndwi,
-                  tree_canopy_frac: p.tree_canopy_frac
-                });
-
-                if (expl && expl.contributions) {
-                  const contribsHtml = expl.contributions.map(c => `
-                    <div class="shap-item ${c.direction}">
-                      <div class="shap-header">
-                        <span class="shap-label">${c.label}</span>
-                        <span class="shap-impact">${c.impact > 0 ? '+' : ''}${c.impact.toFixed(2)}°C</span>
-                      </div>
-                      <div class="shap-bar-bg">
-                        <div class="shap-bar" style="width: ${Math.min(c.impact_pct, 100)}%"></div>
-                      </div>
-                      <div class="shap-desc">${c.description}</div>
-                    </div>
-                  `).join('');
-
-                  const updatedPopup = `
-                    <div class="cell-popup">
-                      <h4>Cell ${p.cell_id ?? '—'}</h4>
-                      <div class="popup-score">
-                        <span class="big" style="color: ${getTierColor(p.hvi_tier)}">${(p.hvi_score ?? 0).toFixed(1)}</span>
-                        <span class="badge badge-${tierClass}">${p.hvi_tier || '—'}</span>
-                      </div>
-                      <div class="shap-container">
-                        <h5>Key Vulnerability Factors</h5>
-                        ${contribsHtml}
-                      </div>
-                    </div>
-                  `;
-                  if (layer.isPopupOpen()) {
-                    layer.setPopupContent(updatedPopup);
-                  }
-                }
-              });
-            } catch (err) {
-              console.error("SHAP fetch failed:", err);
-            }
-          });
-
-          layer.on('mouseover', () => {
-            layer.setStyle({ weight: 2, fillOpacity: 0.9 });
-            layer.bringToFront();
-          });
-
-          layer.on('mouseout', () => {
-            if (gridLayerRef.current) {
-              gridLayerRef.current.resetStyle(layer);
-            }
-          });
-        },
-      });
-
-      if (mapInstance.current && showHeatmap) {
-        gridLayerRef.current.addTo(mapInstance.current);
-      }
-      } // End of features.length > 0
-
-      // Now add the reports layer
-      if (reportsData && reportsData.features && reportsData.features.length > 0) {
-        reportsLayerRef.current = L.geoJSON(reportsData, {
-          pointToLayer: (feature, latlng) => {
-            const iconHtml = `
-              <div style="
-                background: #ef4444; 
-                border: 2px solid white; 
-                color: white; 
-                width: 24px; 
-                height: 24px; 
-                border-radius: 50%; 
-                display: flex; 
-                align-items: center; 
-                justify-content: center; 
-                box-shadow: 0 0 10px rgba(0,0,0,0.5);
-                font-weight: bold;
-                font-size: 14px;
-              ">!</div>
-            `;
-            const customIcon = L.divIcon({
-              html: iconHtml,
-              className: 'custom-report-marker',
-              iconSize: [24, 24],
-              iconAnchor: [12, 12]
-            });
-            return L.marker(latlng, { icon: customIcon });
-          },
           onEachFeature: (feature, layer) => {
             const p = feature.properties;
-            const popupContent = `
-              <div class="cell-popup">
-                <h4 style="margin-bottom:4px; color:#60a5fa;">Verified Report</h4>
-                <div style="font-size:0.85rem; color:#f8fafc; margin-bottom:8px;">
-                  <strong>Category:</strong> ${p.category.replace(/_/g, ' ')}
+            const tierClass = (p.hvi_tier || 'Heat-Safe').toLowerCase().replace('-', '');
+
+            layer.on('click', async () => {
+              if (onCellSelectRef.current) onCellSelectRef.current(p);
+
+              const initialPopup = `
+                <div class="cell-popup">
+                  <h4>Cell ${p.cell_id ?? '—'}</h4>
+                  <div class="popup-score">
+                    <span class="big" style="color: ${getTierColor(p.hvi_tier)}">${(p.hvi_score ?? 0).toFixed(1)}</span>
+                    <span class="badge badge-${tierClass}">${p.hvi_tier || '—'}</span>
+                  </div>
+                  <div class="popup-metrics">
+                    <div class="popup-metric">
+                      <span class="metric-label">LST</span>
+                      <span class="metric-value">${(p.lst_predicted ?? p.lst_observed ?? 0).toFixed(1)}°C</span>
+                    </div>
+                  </div>
+                  <div class="shap-container">
+                    <div class="spinner small"></div>
+                    <span class="loading-text">Analyzing risk factors...</span>
+                  </div>
                 </div>
-                <div class="popup-metrics">
-                  <div class="popup-metric">
-                    <span class="metric-label">Heat Impact</span>
-                    <span class="metric-value">${p.heat_impact_rating}/5</span>
-                  </div>
-                  <div class="popup-metric">
-                    <span class="metric-label">Shade</span>
-                    <span class="metric-value">${p.shade_rating}/5</span>
-                  </div>
-                  <div class="popup-metric">
-                    <span class="metric-label">Water</span>
-                    <span class="metric-value">${p.water_rating}/5</span>
-                  </div>
-                </div>
-                ${p.description ? `<p style="margin-top:8px; font-size:0.8rem; color:#cbd5e1; font-style:italic;">"${p.description}"</p>` : ''}
-              </div>
-            `;
-            layer.bindPopup(popupContent, { maxWidth: 250, className: 'dark-popup' });
-          }
+              `;
+              layer.bindPopup(initialPopup, { maxWidth: 300, className: 'dark-popup' }).openPopup();
+
+              try {
+                import('../../services/api').then(async ({ explainCell }) => {
+                  const expl = await explainCell({
+                    ndvi: p.ndvi, ndbi: p.ndbi, ndwi: p.ndwi,
+                    tree_canopy_frac: p.tree_canopy_frac
+                  });
+                  if (expl && expl.contributions) {
+                    const contribsHtml = expl.contributions.map(c => `
+                      <div class="shap-item ${c.direction}">
+                        <div class="shap-header">
+                          <span class="shap-label">${c.label}</span>
+                          <span class="shap-impact">${c.impact > 0 ? '+' : ''}${c.impact.toFixed(2)}°C</span>
+                        </div>
+                        <div class="shap-bar-bg">
+                          <div class="shap-bar" style="width: ${Math.min(c.impact_pct, 100)}%"></div>
+                        </div>
+                        <div class="shap-desc">${c.description}</div>
+                      </div>
+                    `).join('');
+                    const updatedPopup = `
+                      <div class="cell-popup">
+                        <h4>Cell ${p.cell_id ?? '—'}</h4>
+                        <div class="popup-score">
+                          <span class="big" style="color: ${getTierColor(p.hvi_tier)}">${(p.hvi_score ?? 0).toFixed(1)}</span>
+                          <span class="badge badge-${tierClass}">${p.hvi_tier || '—'}</span>
+                        </div>
+                        <div class="shap-container">
+                          <h5>Key Vulnerability Factors</h5>
+                          ${contribsHtml}
+                        </div>
+                      </div>
+                    `;
+                    if (layer.isPopupOpen()) layer.setPopupContent(updatedPopup);
+                  }
+                });
+              } catch (err) {
+                console.error("SHAP fetch failed:", err);
+              }
+            });
+
+            layer.on('mouseover', () => {
+              layer.setStyle({ weight: 2, fillOpacity: 0.9 });
+              layer.bringToFront();
+            });
+            layer.on('mouseout', () => {
+              if (gridLayerRef.current) gridLayerRef.current.resetStyle(layer);
+            });
+          },
         });
 
-        if (mapInstance.current) {
-          reportsLayerRef.current.addTo(mapInstance.current);
+        if (mapInstance.current && showHeatmap) {
+          gridLayerRef.current.addTo(mapInstance.current);
         }
+      }
+
+      // Add reports
+      addReportsLayer(reportsData);
+
+      // Compute block-level summary
+      if (features.length > 0) {
+        const scores = features.map(f => f.properties.hvi_score);
+        const avgHvi = scores.reduce((a, b) => a + b, 0) / scores.length;
+        const tierDist = {};
+        features.forEach(f => {
+          const t = f.properties.hvi_tier;
+          tierDist[t] = (tierDist[t] || 0) + 1;
+        });
+        setSummary({ avg_hvi: avgHvi, tier_distribution: tierDist, total_cells: features.length });
+      }
+
+      // Zoom to ward
+      if (mapInstance.current) {
+        mapInstance.current.flyTo([ward.lat, ward.lng], 15, { duration: 0.8 });
       }
 
       setLoading(false);
     } catch (err) {
-      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
-        console.log('Request aborted due to new action');
-        return;
-      }
-      console.error('Failed to load grid data:', err);
-      setError(err.message || 'Failed to connect to backend');
+      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') return;
+      console.error('Failed to load block data:', err);
+      setError(err.message || 'Failed to load ward blocks');
       setLoading(false);
     }
-  }, [year, onCellSelect, showHeatmap]);
+  }, [year, showHeatmap]); // Removed onCellSelect to prevent infinite re-render
 
-  // Initial full load when year changes
+  // Helper: add verified reports markers
+  const addReportsLayer = (reportsData) => {
+    if (!reportsData || !reportsData.features || reportsData.features.length === 0) return;
+
+    reportsLayerRef.current = L.geoJSON(reportsData, {
+      pointToLayer: (feature, latlng) => {
+        const iconHtml = `
+          <div style="
+            background: #ef4444; border: 2px solid white; color: white;
+            width: 24px; height: 24px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            font-weight: bold; font-size: 14px;
+          ">!</div>
+        `;
+        return L.marker(latlng, {
+          icon: L.divIcon({
+            html: iconHtml, className: 'custom-report-marker',
+            iconSize: [24, 24], iconAnchor: [12, 12]
+          })
+        });
+      },
+      onEachFeature: (feature, layer) => {
+        const p = feature.properties;
+        layer.bindPopup(`
+          <div class="cell-popup">
+            <h4 style="margin-bottom:4px; color:#60a5fa;">Verified Report</h4>
+            <div style="font-size:0.85rem; color:#f8fafc; margin-bottom:8px;">
+              <strong>Category:</strong> ${p.category.replace(/_/g, ' ')}
+            </div>
+            <div class="popup-metrics">
+              <div class="popup-metric"><span class="metric-label">Heat</span><span class="metric-value">${p.heat_impact_rating}/5</span></div>
+              <div class="popup-metric"><span class="metric-label">Shade</span><span class="metric-value">${p.shade_rating}/5</span></div>
+              <div class="popup-metric"><span class="metric-label">Water</span><span class="metric-value">${p.water_rating}/5</span></div>
+            </div>
+          </div>
+        `, { maxWidth: 250, className: 'dark-popup' });
+      }
+    });
+
+    if (mapInstance.current) reportsLayerRef.current.addTo(mapInstance.current);
+  };
+
+  // ── Drill-down handler (called from popup button) ────────
+  const drillIntoWard = useCallback((wardId) => {
+    const ward = WARDS.find(w => w.id === wardId);
+    if (!ward) return;
+    // Close any open popup
+    if (mapInstance.current) mapInstance.current.closePopup();
+    setSelectedWard(ward);
+    setViewMode('blocks');
+  }, []);
+
+  // Expose drill-down to popup buttons
   useEffect(() => {
-    if (mapInstance.current) {
-      loadData(false);
-    }
-  }, [year]);
+    window.__drillIntoWard = drillIntoWard;
+    return () => { delete window.__drillIntoWard; };
+  }, [drillIntoWard]);
 
-  // Viewport-based refetch on pan/zoom (debounced)
+  // ── Back to wards handler ────────────────────────────────
+  const backToWards = useCallback(() => {
+    setSelectedWard(null);
+    setViewMode('wards');
+    if (mapInstance.current) {
+      mapInstance.current.flyTo(PUNE_CENTER, 12, { duration: 0.8 });
+    }
+  }, []);
+
+  // ── React to viewMode / year changes ─────────────────────
   useEffect(() => {
     if (!mapInstance.current) return;
-
-    const debouncedRefetch = debounce(() => {
-      const zoom = mapInstance.current.getZoom();
-      if (zoom >= 13) {
-        loadData(true);
-      }
-    }, 500);
-
-    mapInstance.current.on('moveend', debouncedRefetch);
-    mapInstance.current.on('zoomend', debouncedRefetch);
-
-    return () => {
-      if (mapInstance.current) {
-        mapInstance.current.off('moveend', debouncedRefetch);
-        mapInstance.current.off('zoomend', debouncedRefetch);
-      }
-    };
-  }, [loadData]);
-
-  // Toggle heatmap layer visibility
-  useEffect(() => {
-    if (!mapInstance.current || !gridLayerRef.current) return;
-    if (showHeatmap) {
-      if (!mapInstance.current.hasLayer(gridLayerRef.current)) {
-        gridLayerRef.current.addTo(mapInstance.current);
-      }
-    } else {
-      if (mapInstance.current.hasLayer(gridLayerRef.current)) {
-        mapInstance.current.removeLayer(gridLayerRef.current);
-      }
+    if (viewMode === 'wards') {
+      loadWards();
+    } else if (viewMode === 'blocks' && selectedWard) {
+      loadWardBlocks(selectedWard);
     }
-  }, [showHeatmap]);
+  }, [viewMode, year, selectedWard, loadWards, loadWardBlocks]);
+
+  // Toggle heatmap visibility
+  useEffect(() => {
+    if (!mapInstance.current) return;
+    const layer = viewMode === 'wards' ? wardLayerRef.current : gridLayerRef.current;
+    if (!layer) return;
+    if (showHeatmap) {
+      if (!mapInstance.current.hasLayer(layer)) layer.addTo(mapInstance.current);
+    } else {
+      if (mapInstance.current.hasLayer(layer)) mapInstance.current.removeLayer(layer);
+    }
+  }, [showHeatmap, viewMode]);
 
   return (
     <div className="map-wrapper">
@@ -383,7 +488,7 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
       {loading && (
         <div className="map-loading">
           <div className="spinner" />
-          <p>Loading {year} heat vulnerability data…</p>
+          <p>{viewMode === 'wards' ? 'Loading ward data…' : `Loading blocks for ${selectedWard?.name}…`}</p>
         </div>
       )}
 
@@ -393,11 +498,41 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
           <div className="error-icon">⚠️</div>
           <h3>Connection Error</h3>
           <p>{error}</p>
-          <button className="btn btn-primary" onClick={() => loadData(false)}>Retry</button>
+          <button className="btn btn-primary" onClick={() => viewMode === 'wards' ? loadWards() : loadWardBlocks(selectedWard)}>Retry</button>
         </div>
       )}
 
-      {/* Normal / Heatmap toggle — bottom right, below legend */}
+      {/* Back to Wards button (only in blocks mode) */}
+      {viewMode === 'blocks' && selectedWard && (
+        <button
+          onClick={backToWards}
+          style={{
+            position: 'absolute', top: 16, left: 16, zIndex: 1000,
+            display: 'flex', alignItems: 'center', gap: '6px',
+            padding: '8px 16px', borderRadius: '8px', border: 'none',
+            background: '#1e293b', color: '#fff', fontWeight: 600,
+            fontSize: '0.85rem', cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+          }}
+        >
+          ← Back to Wards
+        </button>
+      )}
+
+      {/* Ward name badge (blocks mode) */}
+      {viewMode === 'blocks' && selectedWard && !loading && (
+        <div style={{
+          position: 'absolute', top: 16, left: 180, zIndex: 1000,
+          padding: '8px 16px', borderRadius: '8px',
+          background: 'rgba(255,255,255,0.95)', border: '1px solid #e2e8f0',
+          fontWeight: 600, fontSize: '0.85rem', color: '#1e293b',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        }}>
+          Ward {selectedWard.id}: {selectedWard.name}
+        </div>
+      )}
+
+      {/* Normal / Heatmap toggle */}
       <div style={{
         position: 'absolute', bottom: showHeatmap ? 20 : 80, right: 16, zIndex: 1000,
         display: 'flex', borderRadius: '8px', overflow: 'hidden',
@@ -427,7 +562,7 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
         </button>
       </div>
 
-      {/* KPI Overlay — only when heatmap is on */}
+      {/* KPI Overlay */}
       {summary && !loading && showHeatmap && (
         <div className="kpi-overlay glass-panel">
           <div className="kpi-card">
@@ -443,8 +578,8 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
             <span className="value">{(summary.tier_distribution?.['Stressed'] ?? 0).toLocaleString()}</span>
           </div>
           <div className="kpi-card safe">
-            <span className="label">Cells</span>
-            <span className="value">{cellCount.toLocaleString()}</span>
+            <span className="label">{viewMode === 'wards' ? 'Wards' : 'Blocks'}</span>
+            <span className="value">{viewMode === 'wards' ? wardSummaries.length : cellCount.toLocaleString()}</span>
           </div>
         </div>
       )}
@@ -462,7 +597,7 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
         ))}
       </div>
 
-      {/* Legend — only when heatmap is on */}
+      {/* Legend */}
       {showHeatmap && (
         <div className="map-legend glass-panel">
           <h4>HVI Tier</h4>
