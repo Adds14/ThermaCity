@@ -267,6 +267,8 @@ git clone https://github.com/Adds14/ThermaCity.git
 cd ThermaCity
 # Set up .env files in backend/, frontend/, and admin-frontend/
 # using your Supabase database credentials.
+
+> **Note:** The repository includes a GitHub Action (`.github/workflows/keep-alive.yml`) to prevent your Supabase Free Tier project from automatically pausing. Simply add your Supabase connection string as a repository secret named `SUPABASE_DB_URL` on GitHub to enable it!
 ```
 
 ### 2. Run the GEE Pipeline
