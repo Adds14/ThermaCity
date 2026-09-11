@@ -349,6 +349,17 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
                           <h5>Key Vulnerability Factors</h5>
                           ${contribsHtml}
                         </div>
+                        
+                        <div style="margin-top: 12px;">
+                          <button onclick="document.getElementById('explain-box-${p.cell_id}').style.display = 'block'; this.style.display='none'" 
+                                  style="width: 100%; padding: 6px; background: transparent; border: 1px solid #475569; color: #94a3b8; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">
+                            Why is the score only ${p.hvi_tier}?
+                          </button>
+                          <div id="explain-box-${p.cell_id}" style="display:none; font-size: 0.75rem; color: #cbd5e1; margin-top: 8px; padding: 10px; background: #1e293b; border-radius: 4px; border: 1px solid #334155; line-height: 1.4;">
+                            <strong style="color: #60a5fa; display: block; margin-bottom: 4px;">HVI vs Temperature</strong>
+                            Surface heat is only 35% of the Vulnerability Score. This block may be very hot, but if it has low population density (few people exposed) or sufficient wind/canopy, the human risk is downgraded to ${p.hvi_tier} to prioritize areas with higher human exposure.
+                          </div>
+                        </div>
                       </div>
                     `;
                     if (layer.isPopupOpen()) layer.setPopupContent(updatedPopup);
