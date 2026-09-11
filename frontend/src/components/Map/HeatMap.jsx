@@ -338,6 +338,26 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
                         <div class="shap-desc">${c.description}</div>
                       </div>
                     `).join('');
+                    const lst = p.lst_predicted ?? p.lst_observed ?? 0;
+                    const maxPos = expl.contributions.reduce((prev, current) => (prev.impact > current.impact) ? prev : current);
+                    const maxNeg = expl.contributions.reduce((prev, current) => (prev.impact < current.impact) ? prev : current);
+                    
+                    let dynamicExplanation = "";
+                    if (lst > 40 && (p.hvi_score < 50)) {
+                      dynamicExplanation = `Although the surface temperature is high (${lst.toFixed(1)}°C), the vulnerability score is downgraded to <strong>${p.hvi_tier}</strong> because human exposure is lower (e.g. fewer residents, or better wind/shade).<br><br>`;
+                    } else if (lst < 39 && p.hvi_score >= 50) {
+                      dynamicExplanation = `Even though the surface temperature is relatively moderate (${lst.toFixed(1)}°C), the vulnerability score is elevated to <strong>${p.hvi_tier}</strong> due to compounding human factors (e.g. dense population or lack of canopy).<br><br>`;
+                    } else {
+                      dynamicExplanation = `The score of <strong>${p.hvi_tier}</strong> reflects a balanced combination of the surface heat (${lst.toFixed(1)}°C) and the human exposure factors in this block.<br><br>`;
+                    }
+                    
+                    if (maxPos.impact > 0.1) {
+                      dynamicExplanation += `🌡️ The heat in this specific area is primarily driven by <strong>${maxPos.label.toLowerCase()}</strong>. `;
+                    }
+                    if (maxNeg.impact < -0.1) {
+                      dynamicExplanation += `🧊 However, <strong>${maxNeg.label.toLowerCase()}</strong> is providing some cooling relief.`;
+                    }
+
                     const updatedPopup = `
                       <div class="cell-popup">
                         <h4>Cell ${p.cell_id ?? '—'}</h4>
@@ -353,11 +373,11 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
                         <div style="margin-top: 12px;">
                           <button onclick="document.getElementById('explain-box-${p.cell_id}').style.display = 'block'; this.style.display='none'" 
                                   style="width: 100%; padding: 6px; background: transparent; border: 1px solid #475569; color: #94a3b8; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">
-                            Why is the score only ${p.hvi_tier}?
+                            Why is the score ${p.hvi_tier === 'Heat-Safe' ? 'only' : ''} ${p.hvi_tier}?
                           </button>
                           <div id="explain-box-${p.cell_id}" style="display:none; font-size: 0.75rem; color: #cbd5e1; margin-top: 8px; padding: 10px; background: #1e293b; border-radius: 4px; border: 1px solid #334155; line-height: 1.4;">
                             <strong style="color: #60a5fa; display: block; margin-bottom: 4px;">HVI vs Temperature</strong>
-                            Surface heat is only 35% of the Vulnerability Score. This block may be very hot, but if it has low population density (few people exposed) or sufficient wind/canopy, the human risk is downgraded to ${p.hvi_tier} to prioritize areas with higher human exposure.
+                            ${dynamicExplanation}
                           </div>
                         </div>
                       </div>

@@ -20,7 +20,7 @@ export default function WardRankings() {
             id: w.ward_id,
             name: w.ward_name,
             avg_hvi: w.avg_hvi,
-            pop_density: 25000, // DB doesn't pass pop_density right now in the mapper
+            pop_density: w.avg_pop_density,
             emergency_cells: w.hvi_tier === 'Emergency' || w.hvi_tier === 'Stressed' ? Math.floor(w.cell_count * 0.1) : 0
           })));
           setLoading(false);

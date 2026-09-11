@@ -46,6 +46,7 @@ export async function fetchWardSummary(year = 2026, signal = null) {
         hvi_tier: w.dominant_tier,
         cell_count: w.cell_count,
         avg_lst: w.avg_lst_celsius || w.avg_lst,
+        avg_pop_density: w.avg_pop_density,
         lat: coordInfo.lat,
         lng: coordInfo.lng
       };

@@ -62,9 +62,9 @@ async def submit_report(
     # Perform ST_Contains to assign ward_id
     ward_stmt = select(WardBoundary.id).where(
         WardBoundary.geom.ST_Contains(point_geom)
-    )
+    ).limit(1)
     ward_result = await db.execute(ward_stmt)
-    ward_id = ward_result.scalar_one_or_none()
+    ward_id = ward_result.scalars().first()
     
     if ward_id:
         report.ward_id = ward_id
@@ -72,9 +72,9 @@ async def submit_report(
     # Perform ST_Contains to assign grid_id
     grid_stmt = select(SpatialGrid.id).where(
         SpatialGrid.geom.ST_Contains(point_geom)
-    )
+    ).limit(1)
     grid_result = await db.execute(grid_stmt)
-    grid_id = grid_result.scalar_one_or_none()
+    grid_id = grid_result.scalars().first()
 
     if grid_id:
         report.grid_id = grid_id
