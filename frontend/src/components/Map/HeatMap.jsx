@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { fetchGrid, fetchHVISummary, fetchReports, fetchWardSummary } from '../../services/api';
+import { fetchGrid, fetchHVISummary, fetchReports, fetchWardSummary, fetchWardGeometries } from '../../services/api';
 import WARDS from '../../data/wards';
 import './HeatMap.css';
 
@@ -112,7 +112,7 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
     };
   }, []);
 
-  // ── Load ward markers (Level 1) ──────────────────────────
+  // ── Load ward polygons (Level 1) ──────────────────────────
   const loadWards = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -121,7 +121,8 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
     abortControllerRef.current = new AbortController();
 
     try {
-      const [wardData, reportsData] = await Promise.all([
+      const [wardGeoData, wardData, reportsData] = await Promise.all([
+        fetchWardGeometries(year, abortControllerRef.current.signal),
         fetchWardSummary(year, abortControllerRef.current.signal),
         fetchReports(true),
       ]);
@@ -142,76 +143,79 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
         reportsLayerRef.current = null;
       }
 
-      // Create ward markers layer
-      wardLayerRef.current = L.layerGroup();
+      // Create ward polygons layer from GeoJSON
+      const labels = [];
+      const geoLayer = L.geoJSON(wardGeoData, {
+        style: (feature) => {
+          const tier = feature.properties.hvi_tier || 'Heat-Safe';
+          return {
+            fillColor: getTierColor(tier),
+            fillOpacity: TIER_FILL_OPACITY[tier] || 0.5,
+            color: '#1e293b',
+            weight: 2,
+            opacity: 0.8,
+          };
+        },
+        onEachFeature: (feature, layer) => {
+          const p = feature.properties;
+          const tier = p.hvi_tier || 'Heat-Safe';
+          const color = getTierColor(tier);
 
-      wardData.forEach((ward) => {
-        const tier = ward.hvi_tier || 'Heat-Safe';
-        const color = getTierColor(tier);
+          // Add ward name label at centroid
+          const center = layer.getBounds().getCenter();
+          const label = L.divIcon({
+            html: `<div style="
+              color: #fff; font-size: 10px; font-weight: 700;
+              white-space: nowrap; text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+              pointer-events: none;
+            ">${p.ward_id}</div>`,
+            className: 'ward-number-label',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12],
+          });
+          const labelMarker = L.marker(center, { icon: label, interactive: false });
+          labels.push(labelMarker);
 
-        // Circle marker for each ward
-        const circle = L.circleMarker([ward.lat, ward.lng], {
-          radius: 16,
-          fillColor: color,
-          color: '#1e293b',
-          weight: 2,
-          opacity: 1,
-          fillOpacity: 0.85,
-        });
-
-        // Ward number label
-        const label = L.divIcon({
-          html: `<div style="
-            color: #fff; font-size: 11px; font-weight: 700;
-            width: 32px; height: 32px; display: flex;
-            align-items: center; justify-content: center;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-          ">${ward.ward_id}</div>`,
-          className: 'ward-number-label',
-          iconSize: [32, 32],
-          iconAnchor: [16, 16],
-        });
-        const labelMarker = L.marker([ward.lat, ward.lng], { icon: label, interactive: false });
-
-        // Popup
-        const popupContent = `
-          <div class="cell-popup">
-            <h4 style="margin-bottom:2px;">Ward ${ward.ward_id}</h4>
-            <div style="font-size:0.85rem; color:#94a3b8; margin-bottom:8px;">${ward.ward_name}</div>
-            <div class="popup-score">
-              <span class="big" style="color: ${color}">${ward.avg_hvi.toFixed(1)}</span>
-              <span class="badge badge-${tier.toLowerCase().replace('-', '')}">${tier}</span>
-            </div>
-            <div class="popup-metrics">
-              <div class="popup-metric">
-                <span class="metric-label">Avg LST</span>
-                <span class="metric-value">${ward.avg_lst.toFixed(1)}°C</span>
+          // Popup
+          const popupContent = `
+            <div class="cell-popup">
+              <h4 style="margin-bottom:2px;">Ward ${p.ward_id}</h4>
+              <div style="font-size:0.85rem; color:#94a3b8; margin-bottom:8px;">${p.ward_name}</div>
+              <div class="popup-score">
+                <span class="big" style="color: ${color}">${p.avg_hvi.toFixed(1)}</span>
+                <span class="badge badge-${tier.toLowerCase().replace('-', '')}">${tier}</span>
               </div>
-              <div class="popup-metric">
-                <span class="metric-label">Blocks</span>
-                <span class="metric-value">${ward.cell_count}</span>
+              <div class="popup-metrics">
+                <div class="popup-metric">
+                  <span class="metric-label">Avg LST</span>
+                  <span class="metric-value">${p.avg_lst?.toFixed(1) ?? '—'}°C</span>
+                </div>
+                <div class="popup-metric">
+                  <span class="metric-label">Blocks</span>
+                  <span class="metric-value">${p.cell_count}</span>
+                </div>
               </div>
+              <button onclick="window.__drillIntoWard(${p.ward_id})" style="
+                margin-top: 10px; width: 100%; padding: 6px 12px; border: none;
+                background: #3b82f6; color: #fff; border-radius: 6px;
+                cursor: pointer; font-weight: 600; font-size: 0.85rem;
+              ">View Blocks →</button>
             </div>
-            <button onclick="window.__drillIntoWard(${ward.ward_id})" style="
-              margin-top: 10px; width: 100%; padding: 6px 12px; border: none;
-              background: #3b82f6; color: #fff; border-radius: 6px;
-              cursor: pointer; font-weight: 600; font-size: 0.85rem;
-            ">View Blocks →</button>
-          </div>
-        `;
-        circle.bindPopup(popupContent, { maxWidth: 250, className: 'dark-popup' });
+          `;
+          layer.bindPopup(popupContent, { maxWidth: 250, className: 'dark-popup' });
 
-        // Hover effect
-        circle.on('mouseover', () => {
-          circle.setStyle({ weight: 3, fillOpacity: 1, radius: 20 });
-        });
-        circle.on('mouseout', () => {
-          circle.setStyle({ weight: 2, fillOpacity: 0.85, radius: 16 });
-        });
-
-        wardLayerRef.current.addLayer(circle);
-        wardLayerRef.current.addLayer(labelMarker);
+          // Hover effect
+          layer.on('mouseover', () => {
+            layer.setStyle({ weight: 3, fillOpacity: 0.9 });
+            layer.bringToFront();
+          });
+          layer.on('mouseout', () => {
+            geoLayer.resetStyle(layer);
+          });
+        },
       });
+
+      wardLayerRef.current = L.featureGroup([geoLayer, ...labels]);
 
       if (mapInstance.current && showHeatmap) {
         wardLayerRef.current.addTo(mapInstance.current);
@@ -546,33 +550,35 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
         </div>
       )}
 
-      {/* Back to Wards button (only in blocks mode) */}
+      {/* Secondary Controls (Back Button & Ward Name) */}
       {viewMode === 'blocks' && selectedWard && (
-        <button
-          onClick={backToWards}
-          style={{
-            position: 'absolute', top: 16, left: 16, zIndex: 1000,
-            display: 'flex', alignItems: 'center', gap: '6px',
-            padding: '8px 16px', borderRadius: '8px', border: 'none',
-            background: '#1e293b', color: '#fff', fontWeight: 600,
-            fontSize: '0.85rem', cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-          }}
-        >
-          ← Back to Wards
-        </button>
-      )}
-
-      {/* Ward name badge (blocks mode) */}
-      {viewMode === 'blocks' && selectedWard && !loading && (
         <div style={{
-          position: 'absolute', top: 16, left: 180, zIndex: 1000,
-          padding: '8px 16px', borderRadius: '8px',
-          background: 'rgba(255,255,255,0.95)', border: '1px solid #e2e8f0',
-          fontWeight: 600, fontSize: '0.85rem', color: '#1e293b',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          position: 'absolute', top: 100, left: 16, zIndex: 1000,
+          display: 'flex', alignItems: 'center', gap: '12px'
         }}>
-          Ward {selectedWard.id}: {selectedWard.name}
+          <button
+            onClick={backToWards}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '8px 16px', borderRadius: '8px', border: 'none',
+              background: '#1e293b', color: '#fff', fontWeight: 600,
+              fontSize: '0.85rem', cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+            }}
+          >
+            ← Back to Wards
+          </button>
+          
+          {!loading && (
+            <div style={{
+              padding: '8px 16px', borderRadius: '8px',
+              background: 'rgba(255,255,255,0.95)', border: '1px solid #e2e8f0',
+              fontWeight: 600, fontSize: '0.85rem', color: '#1e293b',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            }}>
+              Ward {selectedWard.id}: {selectedWard.name}
+            </div>
+          )}
         </div>
       )}
 

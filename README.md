@@ -231,7 +231,8 @@ ThermaCity/
 │   │   ├── geometry.py          # Pune boundary + 100m grid generator
 │   │   └── export.py            # Canonical reduce_to_grid() function
 │   └── boundaries/
-│       └── pune_boundary.geojson
+│       ├── pune_boundary.geojson
+│       └── pune_wards_41.geojson  # 41 Ward Voronoi Polygons
 └── db/
     └── init.sql                 # PostGIS schema (tables + triggers)
 ```

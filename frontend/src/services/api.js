@@ -55,6 +55,11 @@ export async function fetchWardSummary(year = 2026, signal = null) {
   return [];
 }
 
+export async function fetchWardGeometries(year = 2026, signal = null) {
+  const { data } = await api.get('/wards/geometries', { params: { year }, signal });
+  return data;
+}
+
 // ── Prediction & Simulation ─────────────────────────────────
 
 export async function predictLST(features) {

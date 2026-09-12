@@ -5,6 +5,7 @@ Endpoints for ward-level aggregation and rankings.
 
 Routes:
   GET /wards              — Ward rankings sorted by HVI (most dangerous first)
+  GET /wards/geometries   — Ward boundary polygons as GeoJSON FeatureCollection
   GET /wards/{ward_id}    — Single ward deep-dive with cell breakdown
 """
 
@@ -101,6 +102,85 @@ async def get_ward_rankings(
         "year": year,
         "total_wards": len(rankings),
         "rankings": rankings,
+    }
+
+
+@router.get("/geometries")
+async def get_ward_geometries(
+    year: int = Query(2024, ge=2020, le=2030, description="Data year"),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Return all ward boundaries as a GeoJSON FeatureCollection.
+
+    Each feature includes the ward polygon geometry and aggregate HVI
+    stats for the requested year — ready for direct rendering on a
+    Leaflet map with tier-based colouring.
+    """
+    stmt = (
+        select(
+            WardBoundary.id.label("ward_id"),
+            WardBoundary.ward_name,
+            WardBoundary.geom,
+            func.avg(EnvironmentalFeature.hvi_score).label("avg_hvi"),
+            func.count(EnvironmentalFeature.id).label("cell_count"),
+            func.avg(EnvironmentalFeature.lst_observed).label("avg_lst"),
+        )
+        .join(SpatialGrid, SpatialGrid.ward_id == WardBoundary.id)
+        .join(
+            EnvironmentalFeature,
+            (EnvironmentalFeature.grid_id == SpatialGrid.id)
+            & (EnvironmentalFeature.year == year),
+        )
+        .where(EnvironmentalFeature.hvi_score.isnot(None))
+        .group_by(WardBoundary.id, WardBoundary.ward_name, WardBoundary.geom)
+        .order_by(desc(func.avg(EnvironmentalFeature.hvi_score)))
+    )
+
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    features = []
+    for row in rows:
+        avg = float(row.avg_hvi) if row.avg_hvi else 0
+        if avg >= 76:
+            tier = "Emergency"
+        elif avg >= 51:
+            tier = "Stressed"
+        elif avg >= 26:
+            tier = "Caution"
+        else:
+            tier = "Heat-Safe"
+
+        ward_geom = None
+        if row.geom:
+            try:
+                from geoalchemy2.shape import to_shape
+                from shapely.geometry import mapping
+                ward_geom = mapping(to_shape(row.geom))
+            except Exception:
+                pass
+
+        if not ward_geom:
+            continue
+
+        features.append({
+            "type": "Feature",
+            "geometry": ward_geom,
+            "properties": {
+                "ward_id": row.ward_id,
+                "ward_name": row.ward_name,
+                "avg_hvi": round(avg, 2),
+                "hvi_tier": tier,
+                "cell_count": row.cell_count,
+                "avg_lst": round(float(row.avg_lst), 1) if row.avg_lst else None,
+            },
+        })
+
+    return {
+        "type": "FeatureCollection",
+        "metadata": {"year": year, "count": len(features)},
+        "features": features,
     }
 
 
