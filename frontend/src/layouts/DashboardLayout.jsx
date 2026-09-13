@@ -1,41 +1,57 @@
-import { useState } from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Map, Activity, AlertTriangle, Layers } from 'lucide-react';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Map, Activity, AlertTriangle, Layers, MapPin } from 'lucide-react';
 import './DashboardLayout.css';
+import api from '../services/api';
 
 export default function DashboardLayout() {
-  const [year, setYear] = useState(2026);
   const location = useLocation();
+  const navigate = useNavigate();
 
   return (
     <div className="layout-container">
       {/* Sidebar Navigation */}
-      <nav className="sidebar glass-panel">
-        <div className="sidebar-header">
-          <h1 className="text-gradient">ThermaCity</h1>
-          <p className="subtitle">Pune Heat Crisis Dashboard</p>
+      <nav className="sidebar">
+        <div className="sidebar-header" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
+          <h1 className="text-gradient">
+            <Layers className="logo-icon" size={20} /> THERMACITY
+          </h1>
         </div>
 
-        <ul className="nav-links">
-          <li>
-            <Link to="/" className={location.pathname === '/' ? 'active' : ''}>
-              <Map size={20} />
-              <span>City Heat Map</span>
-            </Link>
-          </li>
-          <li>
-            <Link to="/ward/top" className={location.pathname.startsWith('/ward') ? 'active' : ''}>
-              <Activity size={20} />
-              <span>Ward Rankings</span>
-            </Link>
-          </li>
-          <li>
-            <Link to="/report" className={location.pathname === '/report' ? 'active' : ''}>
-              <AlertTriangle size={20} />
-              <span>Community Reports</span>
-            </Link>
-          </li>
-        </ul>
+        <div className="sidebar-section">
+          <h3 className="section-label">EXPLORE</h3>
+          <ul className="nav-links">
+            <li>
+              <Link to="/explore/map" className={location.pathname === '/explore/map' ? 'active' : ''}>
+                <Map size={20} />
+                <span>City Heat Map</span>
+              </Link>
+            </li>
+            <li>
+              <Link to="/explore/rankings" className={location.pathname.startsWith('/explore/rankings') ? 'active' : ''}>
+                <Activity size={20} />
+                <span>Ward Rankings</span>
+              </Link>
+            </li>
+            <li>
+              <Link to="/explore/reports" className={location.pathname === '/explore/reports' ? 'active' : ''}>
+                <AlertTriangle size={20} />
+                <span>Community Reports</span>
+              </Link>
+            </li>
+          </ul>
+        </div>
+
+        <div className="sidebar-section">
+          <h3 className="section-label">YOUR LOCATION</h3>
+          <div className="your-location-card">
+            <p>Discover your local heat risk.</p>
+            <button className="btn-primary btn-sm" onClick={() => navigate('/know-your-heat')}>
+              <MapPin size={16} /> Know Your Heat
+            </button>
+          </div>
+        </div>
+
+        <div className="sidebar-spacer"></div>
 
         <div className="sidebar-actions">
           <button 
@@ -47,8 +63,8 @@ export default function DashboardLayout() {
               btn.innerHTML = 'Generating...';
               btn.disabled = true;
               try {
-                const { downloadReport } = await import('../services/api');
-                await downloadReport(2024); // could be dynamic based on global state
+                // Fetch the latest year PDF
+                await api.downloadReport(2026);
               } catch (err) {
                 console.error("Failed to download report", err);
                 alert("Failed to generate report");

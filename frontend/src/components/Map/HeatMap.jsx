@@ -124,7 +124,7 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
       const [wardGeoData, wardData, reportsData] = await Promise.all([
         fetchWardGeometries(year, abortControllerRef.current.signal),
         fetchWardSummary(year, abortControllerRef.current.signal),
-        fetchReports(true),
+        fetchReports(true).catch(err => { console.warn('Reports fetch failed (non-critical):', err.message); return { features: [] }; }),
       ]);
 
       setWardSummaries(wardData);
@@ -550,32 +550,42 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
         </div>
       )}
 
+      {/* KPI Overlay */}
+      {summary && !loading && showHeatmap && (
+        <div className="kpi-overlay glass-panel">
+          <div className="kpi-header">
+            <h4>PUNE HEAT STATUS</h4>
+          </div>
+          <div className="kpi-grid">
+            <div className="kpi-card">
+              <span className="label">Avg HVI</span>
+              <span className="value">{summary.avg_hvi?.toFixed(1) ?? '—'}</span>
+            </div>
+            <div className="kpi-card danger">
+              <span className="label">Emergency</span>
+              <span className="value">{(summary.tier_distribution?.['Emergency'] ?? 0).toLocaleString()}</span>
+            </div>
+            <div className="kpi-card warning">
+              <span className="label">Stressed</span>
+              <span className="value">{(summary.tier_distribution?.['Stressed'] ?? 0).toLocaleString()}</span>
+            </div>
+            <div className="kpi-card safe">
+              <span className="label">{viewMode === 'wards' ? 'Wards' : 'Blocks'}</span>
+              <span className="value">{viewMode === 'wards' ? wardSummaries.length : cellCount.toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Secondary Controls (Back Button & Ward Name) */}
       {viewMode === 'blocks' && selectedWard && (
-        <div style={{
-          position: 'absolute', top: 100, left: 16, zIndex: 1000,
-          display: 'flex', alignItems: 'center', gap: '12px'
-        }}>
-          <button
-            onClick={backToWards}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '8px 16px', borderRadius: '8px', border: 'none',
-              background: '#1e293b', color: '#fff', fontWeight: 600,
-              fontSize: '0.85rem', cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-            }}
-          >
+        <div className="ward-controls-overlay">
+          <button onClick={backToWards} className="btn-back-wards">
             ← Back to Wards
           </button>
           
           {!loading && (
-            <div style={{
-              padding: '8px 16px', borderRadius: '8px',
-              background: 'rgba(255,255,255,0.95)', border: '1px solid #e2e8f0',
-              fontWeight: 600, fontSize: '0.85rem', color: '#1e293b',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            }}>
+            <div className="ward-name-badge">
               Ward {selectedWard.id}: {selectedWard.name}
             </div>
           )}
@@ -583,82 +593,36 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
       )}
 
       {/* Normal / Heatmap toggle */}
-      <div style={{
-        position: 'absolute', bottom: showHeatmap ? 20 : 80, right: 16, zIndex: 1000,
-        display: 'flex', borderRadius: '8px', overflow: 'hidden',
-        border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-      }}>
+      <div className="map-toggle-overlay">
         <button
           onClick={() => setShowHeatmap(false)}
-          style={{
-            padding: '6px 14px', border: 'none', cursor: 'pointer',
-            background: !showHeatmap ? '#1e293b' : '#f1f5f9',
-            color: !showHeatmap ? '#fff' : '#475569',
-            fontWeight: 600, fontSize: '0.8rem'
-          }}
+          className={`toggle-btn ${!showHeatmap ? 'active' : ''}`}
         >
-          🗺️ Normal
+          🗺️ Base
         </button>
         <button
           onClick={() => setShowHeatmap(true)}
-          style={{
-            padding: '6px 14px', border: 'none', cursor: 'pointer',
-            background: showHeatmap ? '#ef4444' : '#f1f5f9',
-            color: showHeatmap ? '#fff' : '#475569',
-            fontWeight: 600, fontSize: '0.8rem'
-          }}
+          className={`toggle-btn ${showHeatmap ? 'active-heat' : ''}`}
         >
-          🌡️ Heatmap
+          🌡️ Heat
         </button>
       </div>
 
-      {/* KPI Overlay */}
-      {summary && !loading && showHeatmap && (
-        <div className="kpi-overlay glass-panel">
-          <div className="kpi-card">
-            <span className="label">Avg HVI</span>
-            <span className="value">{summary.avg_hvi?.toFixed(1) ?? '—'}</span>
-          </div>
-          <div className="kpi-card danger">
-            <span className="label">Emergency</span>
-            <span className="value">{(summary.tier_distribution?.['Emergency'] ?? 0).toLocaleString()}</span>
-          </div>
-          <div className="kpi-card warning">
-            <span className="label">Stressed</span>
-            <span className="value">{(summary.tier_distribution?.['Stressed'] ?? 0).toLocaleString()}</span>
-          </div>
-          <div className="kpi-card safe">
-            <span className="label">{viewMode === 'wards' ? 'Wards' : 'Blocks'}</span>
-            <span className="value">{viewMode === 'wards' ? wardSummaries.length : cellCount.toLocaleString()}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Year selector */}
-      <div className="year-overlay glass-panel">
-        {YEARS.map((y) => (
-          <button
-            key={y}
-            className={`year-btn ${y === year ? 'active' : ''}`}
-            onClick={() => setYear(y)}
-          >
-            {y}
-          </button>
-        ))}
-      </div>
-
-      {/* Legend */}
-      {showHeatmap && (
-        <div className="map-legend glass-panel">
-          <h4>HVI Tier</h4>
-          {Object.entries(TIER_COLORS).map(([tier, color]) => (
-            <div key={tier} className="legend-row">
-              <div className="legend-color" style={{ background: color }} />
-              <span>{tier}</span>
+      {/* Year selector / Timeline */}
+      <div className="year-timeline glass-panel">
+        <div className="timeline-track">
+          {YEARS.map((y, idx) => (
+            <div key={y} className="timeline-node">
+              <button
+                className={`year-dot ${y === year ? 'active' : ''}`}
+                onClick={() => setYear(y)}
+              />
+              <span className={`year-label ${y === year ? 'active' : ''}`}>{y}</span>
+              {idx < YEARS.length - 1 && <div className="timeline-line" />}
             </div>
           ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }

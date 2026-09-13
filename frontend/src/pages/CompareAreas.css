@@ -1,0 +1,150 @@
+.compare-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.compare-content {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 4rem 2rem;
+  width: 100%;
+}
+
+.compare-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 4rem;
+  background: var(--panel-bg);
+  padding: 3rem;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--panel-border);
+}
+
+.compare-inputs {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.vs-badge {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--bg-color);
+  padding: 0.5rem;
+  border-radius: 50%;
+  border: 1px solid var(--panel-border);
+}
+
+.compare-results {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+
+.comp-header-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 2rem;
+  border-bottom: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.comp-h-left, .comp-h-right {
+  flex: 1;
+}
+.comp-h-right {
+  text-align: right;
+}
+
+.comp-h-left h3, .comp-h-right h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.comp-metrics-container {
+  padding: 2rem;
+}
+
+.comp-row {
+  margin-bottom: 2rem;
+}
+
+.comp-row:last-child {
+  margin-bottom: 0;
+}
+
+.comp-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+
+.comp-bars {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+}
+
+.comp-bar-group {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.comp-bar-group.right {
+  justify-content: flex-end;
+}
+
+.cb-val {
+  font-weight: 600;
+  width: 60px;
+}
+
+.comp-bar-group.right .cb-val {
+  text-align: right;
+}
+
+.cb-track {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-color);
+  border-radius: 4px;
+  border: 1px solid var(--panel-border);
+}
+
+.cb-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: #64748b;
+}
+
+.comp-bar-group:not(.right) .cb-fill {
+  float: right; /* Grow from right to left */
+}
+
+.cb-fill.winner {
+  background: var(--accent-color);
+}
+
+@media (max-width: 768px) {
+  .compare-inputs {
+    flex-direction: column;
+  }
+  .comp-bars {
+    gap: 1rem;
+  }
+}

@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Map } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Map, Filter } from 'lucide-react';
 import './WardRankings.css';
 
 export default function WardRankings() {
   const [wards, setWards] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filterTier, setFilterTier] = useState('All');
+  const navigate = useNavigate();
 
-  // Mock data until PostGIS API is accessible
   useEffect(() => {
     let active = true;
     const loadWards = async () => {
@@ -15,14 +16,15 @@ export default function WardRankings() {
         const { fetchWardSummary } = await import('../../services/api');
         const data = await fetchWardSummary(2026);
         if (active) {
-          // data format from api: ward_id, ward_name, avg_hvi, hvi_tier, cell_count, avg_lst
-          setWards(data.map((w, index) => ({
+          const sorted = data.sort((a, b) => b.avg_hvi - a.avg_hvi).map((w) => ({
             id: w.ward_id,
             name: w.ward_name,
             avg_hvi: w.avg_hvi,
             pop_density: w.avg_pop_density,
+            tier: w.avg_hvi >= 75 ? 'Emergency' : w.avg_hvi >= 50 ? 'Stressed' : w.avg_hvi >= 25 ? 'Caution' : 'Heat-Safe',
             emergency_cells: w.hvi_tier === 'Emergency' || w.hvi_tier === 'Stressed' ? Math.floor(w.cell_count * 0.1) : 0
-          })));
+          }));
+          setWards(sorted);
           setLoading(false);
         }
       } catch (err) {
@@ -34,19 +36,30 @@ export default function WardRankings() {
     return () => { active = false; };
   }, []);
 
-  const getTierClass = (score) => {
-    if (score >= 75) return 'badge-emergency';
-    if (score >= 50) return 'badge-stressed';
-    if (score >= 25) return 'badge-caution';
-    return 'badge-safe';
+  const getTierClass = (tier) => {
+    switch (tier) {
+      case 'Emergency': return 'badge-emergency';
+      case 'Stressed': return 'badge-stressed';
+      case 'Caution': return 'badge-caution';
+      default: return 'badge-safe';
+    }
   };
 
-  const getTierText = (score) => {
-    if (score >= 75) return 'Emergency';
-    if (score >= 50) return 'Stressed';
-    if (score >= 25) return 'Caution';
-    return 'Safe';
-  };
+  const distribution = useMemo(() => {
+    const dist = { 'Heat-Safe': 0, 'Caution': 0, 'Stressed': 0, 'Emergency': 0 };
+    wards.forEach(w => {
+      dist[w.tier] = (dist[w.tier] || 0) + 1;
+    });
+    return dist;
+  }, [wards]);
+
+  const filteredWards = useMemo(() => {
+    if (filterTier === 'All') return wards;
+    return wards.filter(w => w.tier === filterTier);
+  }, [wards, filterTier]);
+
+  const highestRisk = wards.length > 0 ? wards[0] : null;
+  const totalEmergency = wards.reduce((acc, curr) => acc + curr.emergency_cells, 0);
 
   if (loading) {
     return <div className="loading-state">Loading ward analytics...</div>;
@@ -55,11 +68,59 @@ export default function WardRankings() {
   return (
     <div className="ward-rankings-container animate-slide-in">
       <header className="page-header">
-        <h2>Ward Vulnerability Rankings</h2>
-        <p className="subtitle">Prioritize resource allocation (tankers, cooling centers) based on aggregate Heat Vulnerability Index.</p>
+        <h2>Ward Vulnerability</h2>
+        <p className="subtitle">41 wards analyzed</p>
       </header>
 
-      <div className="rankings-table-wrapper glass-panel">
+      <div className="summary-cards">
+        {highestRisk && (
+          <div className="summary-card danger">
+            <span className="sc-label">HIGHEST RISK</span>
+            <span className="sc-value">{highestRisk.name}</span>
+            <span className="sc-sub">HVI {highestRisk.avg_hvi.toFixed(1)}</span>
+          </div>
+        )}
+        <div className="summary-card warning">
+          <span className="sc-label">EMERGENCY CELLS</span>
+          <span className="sc-value">{totalEmergency.toLocaleString()}</span>
+          <span className="sc-sub">City-wide</span>
+        </div>
+      </div>
+
+      <div className="distribution-section glass-panel">
+        <h3>HVI Distribution</h3>
+        <div className="dist-bars">
+          {Object.entries(distribution).map(([tier, count]) => {
+            const pct = (count / Math.max(1, wards.length)) * 100;
+            return (
+              <div key={tier} className="dist-row">
+                <span className="dist-label">{tier}</span>
+                <div className="dist-bar-wrapper">
+                  <div className={`dist-bar ${getTierClass(tier).replace('badge-', 'bg-')}`} style={{ width: `${pct}%` }}></div>
+                </div>
+                <span className="dist-count">{count}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="table-controls">
+        <div className="filters">
+          <Filter size={16} />
+          {['All', 'Heat-Safe', 'Caution', 'Stressed', 'Emergency'].map(t => (
+            <button 
+              key={t}
+              className={`filter-btn ${filterTier === t ? 'active' : ''}`}
+              onClick={() => setFilterTier(t)}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="rankings-table-wrapper panel">
         <table className="rankings-table">
           <thead>
             <tr>
@@ -68,42 +129,46 @@ export default function WardRankings() {
               <th>Avg HVI (0-100)</th>
               <th>Status</th>
               <th>Emergency Cells</th>
-              <th>Pop. Density (/sq km)</th>
+              <th>Pop. Density (/km²)</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody>
-            {wards.map((ward, index) => (
-              <tr key={ward.id} className={index < 2 ? 'critical-row' : ''}>
-                <td className="rank-col">#{index + 1}</td>
+            {filteredWards.map((ward, index) => (
+              <tr key={ward.id}>
+                <td className="rank-col">#{wards.findIndex(w => w.id === ward.id) + 1}</td>
                 <td className="name-col">{ward.name}</td>
                 <td className="score-col">
                   <div className="score-bar-bg">
                     <div 
-                      className={`score-bar-fill ${getTierClass(ward.avg_hvi).replace('badge-', 'bg-')}`}
+                      className={`score-bar-fill ${getTierClass(ward.tier).replace('badge-', 'bg-')}`}
                       style={{ width: `${ward.avg_hvi}%` }}
                     />
                   </div>
                   <span>{ward.avg_hvi.toFixed(1)}</span>
                 </td>
                 <td>
-                  <span className={`badge ${getTierClass(ward.avg_hvi)}`}>
-                    {getTierText(ward.avg_hvi)}
+                  <span className={`badge ${getTierClass(ward.tier)}`}>
+                    {ward.tier}
                   </span>
                 </td>
                 <td className={ward.emergency_cells > 20 ? 'text-emergency font-bold' : ''}>
                   {ward.emergency_cells}
                 </td>
-                <td>{ward.pop_density.toLocaleString()}</td>
+                <td>{(ward.pop_density ?? 0).toLocaleString()}</td>
                 <td>
-                  <Link to={`/?ward=${ward.id}`} className="btn btn-primary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <button onClick={() => navigate(`/explore/map?ward=${ward.id}`)} className="btn btn-outline btn-sm">
                     <Map size={14} /> View Map
-                  </Link>
+                  </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        
+        {filteredWards.length === 0 && (
+          <div className="empty-state">No wards found for this status tier.</div>
+        )}
       </div>
     </div>
   );

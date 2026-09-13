@@ -1,34 +1,39 @@
 :root {
-  /* Color Palette - Dark Glassmorphism Theme */
-  --bg-color: #0b0f19;
-  --panel-bg: rgba(20, 25, 35, 0.65);
-  --panel-border: rgba(255, 255, 255, 0.08);
-  --text-main: #e2e8f0;
-  --text-muted: #94a3b8;
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  
+  /* Slate/Charcoal Professional Theme */
+  --bg-color: #0f172a;       /* Slate 900 */
+  --panel-bg: #1e293b;       /* Slate 800 */
+  --panel-border: #334155;   /* Slate 700 */
+  
+  --accent-color: #3b82f6;   /* Blue 500 */
+  --text-main: #f8fafc;      /* Slate 50 */
+  --text-muted: #94a3b8;     /* Slate 400 */
+  
+  /* Accents & Data Colors */
   --accent-color: #3b82f6;
-
-  /* HVI Tiers (Heat-Safe -> Emergency) */
-  --tier-safe: #10b981;      /* Emerald Green */
-  --tier-safe-bg: rgba(16, 185, 129, 0.15);
-  --tier-caution: #fbbf24;   /* Amber Yellow */
-  --tier-caution-bg: rgba(251, 191, 36, 0.15);
-  --tier-stressed: #f97316;  /* Bright Orange */
-  --tier-stressed-bg: rgba(249, 115, 22, 0.15);
-  --tier-emergency: #ef4444; /* Alert Red */
-  --tier-emergency-bg: rgba(239, 68, 68, 0.15);
-
-  /* Typography */
-  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --accent-hover: #2563eb;
   
-  /* Layout & Sizing */
-  --sidebar-width: 380px;
-  --border-radius: 12px;
-  --border-radius-sm: 8px;
+  --tier-safe: #3b82f6;      /* Cool Blue */
+  --tier-safe-bg: rgba(59, 130, 246, 0.1);
   
-  /* Shadows & Effects */
-  --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
-  --glass-blur: blur(12px);
+  --tier-caution: #eab308;   /* Yellow */
+  --tier-caution-bg: rgba(234, 179, 8, 0.1);
+  
+  --tier-stressed: #f97316;  /* Orange */
+  --tier-stressed-bg: rgba(249, 115, 22, 0.1);
+  
+  --tier-emergency: #ef4444; /* Red */
+  --tier-emergency-bg: rgba(239, 68, 68, 0.1);
+
+  /* Specific indicators */
+  --color-veg: #0d9488;
+  --color-built: #64748b;
+  --color-water: #0ea5e9;
+  
+  /* Layout */
+  --border-radius: 6px;
+  --border-radius-sm: 4px;
 }
 
 * {
@@ -38,99 +43,120 @@
 }
 
 body {
-  font-family: var(--font-family);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background-color: var(--bg-color);
   color: var(--text-main);
-  overflow: hidden; /* App is a full viewport dashboard */
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Glassmorphism Panel Utility */
-.glass-panel {
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ── Typography ── */
+h1, h2, h3, h4, h5 {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #fff;
+  line-height: 1.2;
+}
+
+p {
+  color: var(--text-muted);
+}
+
+/* ── Panels / Containers ── */
+.panel {
   background: var(--panel-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--panel-border);
   border-radius: var(--border-radius);
-  box-shadow: var(--shadow-md);
+  padding: 1.5rem;
 }
 
-/* Typography Utilities */
-h1, h2, h3, h4 {
-  font-weight: 600;
-  letter-spacing: -0.025em;
-  color: #f8fafc;
+/* Remove all glassmorphism entirely */
+.glass-panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--border-radius);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
 }
 
-.text-gradient {
-  background: linear-gradient(to right, #60a5fa, #a78bfa);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Base Buttons */
+/* ── Buttons ── */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.5rem 1rem;
+  padding: 0.6rem 1.2rem;
   border-radius: var(--border-radius-sm);
-  font-size: 0.875rem;
   font-weight: 500;
+  font-size: 0.9rem;
   cursor: pointer;
-  transition: all 0.2s ease;
-  border: none;
-  gap: 0.5rem;
+  transition: all 0.2s;
+  border: 1px solid transparent;
 }
 
 .btn-primary {
   background: var(--accent-color);
-  color: white;
+  color: #fff;
 }
 
 .btn-primary:hover {
-  background: #2563eb;
-  transform: translateY(-1px);
+  background: var(--accent-hover);
 }
 
-/* Tier Badges */
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  color: var(--text-main);
+}
+
+.btn-outline:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: #64748b;
+}
+
+.btn-sm {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+}
+
+.w-full {
+  width: 100%;
+}
+
+/* ── Badges ── */
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  border: 1px solid;
 }
 
-.badge-safe { color: var(--tier-safe); background: var(--tier-safe-bg); border: 1px solid rgba(16, 185, 129, 0.3); }
-.badge-caution { color: var(--tier-caution); background: var(--tier-caution-bg); border: 1px solid rgba(251, 191, 36, 0.3); }
-.badge-stressed { color: var(--tier-stressed); background: var(--tier-stressed-bg); border: 1px solid rgba(249, 115, 22, 0.3); }
-.badge-emergency { 
-  color: var(--tier-emergency); 
-  background: var(--tier-emergency-bg); 
-  border: 1px solid rgba(239, 68, 68, 0.3); 
-  animation: pulse-border 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
+.badge-safe { color: var(--tier-safe); background: var(--tier-safe-bg); border-color: rgba(59, 130, 246, 0.3); }
+.badge-caution { color: var(--tier-caution); background: var(--tier-caution-bg); border-color: rgba(234, 179, 8, 0.3); }
+.badge-stressed { color: var(--tier-stressed); background: var(--tier-stressed-bg); border-color: rgba(249, 115, 22, 0.3); }
+.badge-emergency { color: var(--tier-emergency); background: var(--tier-emergency-bg); border-color: rgba(239, 68, 68, 0.3); }
 
-/* Animations */
-@keyframes slide-in-left {
-  from { transform: translateX(-100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
+/* Text Utilities */
+.text-emergency { color: var(--tier-emergency); }
+.text-stressed { color: var(--tier-stressed); }
+.text-safe { color: var(--tier-safe); }
+.text-caution { color: var(--tier-caution); }
+.font-bold { font-weight: 700; }
+.text-muted { color: var(--text-muted); }
 
-@keyframes slide-in-right {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-
-@keyframes pulse-border {
-  0%, 100% { border-color: rgba(239, 68, 68, 0.3); }
-  50% { border-color: rgba(239, 68, 68, 0.8); }
-}
+/* Background Utilities */
+.bg-safe { background: var(--tier-safe); }
+.bg-caution { background: var(--tier-caution); }
+.bg-stressed { background: var(--tier-stressed); }
+.bg-emergency { background: var(--tier-emergency); }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
@@ -141,9 +167,9 @@ h1, h2, h3, h4 {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--panel-border);
-  border-radius: 4px;
+  background: #334155;
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: #475569;
 }

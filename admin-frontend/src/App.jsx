@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle, ShieldAlert, MapPin, Clock, RefreshCw, Trash2, XCircle } from 'lucide-react';
 import { fetchUnverifiedReports, fetchVerifiedReports, verifyReport, deleteReport } from './api';
+import './App.css';
 
 function App() {
   const [reports, setReports] = useState([]);
@@ -86,13 +87,14 @@ function App() {
 
       <main className="dashboard-layout">
         
-        <div className="tabs" style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+        <div className="tabs" style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
           <button 
             onClick={() => setActiveTab('pending')}
             style={{
-              padding: '8px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer',
-              background: activeTab === 'pending' ? '#3b82f6' : 'rgba(255,255,255,0.1)',
-              color: '#fff', fontWeight: 'bold'
+              padding: '10px 20px', borderRadius: 'var(--border-radius-sm)', border: 'none', cursor: 'pointer',
+              background: activeTab === 'pending' ? 'var(--accent-color)' : 'rgba(255,255,255,0.05)',
+              color: '#fff', fontWeight: '600', fontSize: '0.95rem',
+              transition: 'background 0.2s'
             }}
           >
             Pending Verifications
@@ -100,9 +102,10 @@ function App() {
           <button 
             onClick={() => setActiveTab('published')}
             style={{
-              padding: '8px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer',
-              background: activeTab === 'published' ? '#10b981' : 'rgba(255,255,255,0.1)',
-              color: '#fff', fontWeight: 'bold'
+              padding: '10px 20px', borderRadius: 'var(--border-radius-sm)', border: 'none', cursor: 'pointer',
+              background: activeTab === 'published' ? 'var(--tier-safe)' : 'rgba(255,255,255,0.05)',
+              color: '#fff', fontWeight: '600', fontSize: '0.95rem',
+              transition: 'background 0.2s'
             }}
           >
             Published Reports

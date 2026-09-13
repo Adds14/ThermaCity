@@ -36,7 +36,7 @@ export default function ScenarioPanel({ year = 2026, selectedCell = null }) {
       setResults(data);
     } catch (err) {
       console.error('Simulation failed:', err);
-      setError('Backend unreachable. Start the server with: uvicorn app.main:app --reload');
+      setError('Backend unreachable.');
     } finally {
       setLoading(false);
     }
@@ -48,7 +48,6 @@ export default function ScenarioPanel({ year = 2026, selectedCell = null }) {
     return `${sign}${val.toFixed(2)}`;
   };
 
-  // Reset results if selected cell changes
   useEffect(() => {
     setResults(null);
   }, [selectedCell]);
@@ -85,114 +84,118 @@ export default function ScenarioPanel({ year = 2026, selectedCell = null }) {
   return (
     <div className="scenario-panel glass-panel">
       <div className="panel-header">
-        <h3><Sliders size={18} /> {selectedCell ? `Block Simulator (ID: ${selectedCell.cell_id})` : 'City Average Simulator'}</h3>
-        <p className="subtitle">Model cooling interventions &amp; see predicted temperature change</p>
+        <h3><Sliders size={18} /> {selectedCell ? `Block Simulator (ID: ${selectedCell.cell_id})` : 'City Simulator'}</h3>
+        <p className="subtitle">Model cooling interventions &amp; see predicted impact.</p>
       </div>
 
       <div className="slider-group">
         <label>
-          <TreeDeciduous size={16} />
-          <span>Tree Canopy Afforestation</span>
+          <div className="sg-left">
+            <TreeDeciduous size={16} />
+            <span>Tree Canopy Afforestation</span>
+          </div>
           <span className="value">+{canopyDelta}%</span>
         </label>
         <input
           type="range"
           min="0"
           max="50"
-          step="1"
+          step="5"
           value={canopyDelta}
           onChange={(e) => setCanopyDelta(Number(e.target.value))}
+          className="styled-slider"
         />
-        <div className="slider-labels">
+        <div className="slider-marks">
           <span>0%</span>
-          <span>+50%</span>
+          <span>50%</span>
         </div>
       </div>
 
       <div className="slider-group">
         <label>
-          <Sun size={16} />
-          <span>Cool Roofs (Albedo ↑)</span>
+          <div className="sg-left">
+            <Sun size={16} />
+            <span>Cool Roofs & Pavements</span>
+          </div>
           <span className="value">+{ndbiDelta}%</span>
         </label>
         <input
           type="range"
           min="0"
           max="30"
-          step="1"
+          step="5"
           value={ndbiDelta}
           onChange={(e) => setNdbiDelta(Number(e.target.value))}
+          className="styled-slider"
         />
-        <div className="slider-labels">
+        <div className="slider-marks">
           <span>0%</span>
           <span>30%</span>
         </div>
       </div>
 
       <button
-        className={`btn btn-primary full-width ${loading ? 'loading' : ''}`}
+        className="btn-primary"
+        style={{ width: '100%', marginTop: '1rem', padding: '0.75rem' }}
         onClick={handleSimulate}
-        disabled={loading || (canopyDelta === 0 && ndbiDelta === 0)}
+        disabled={loading}
       >
-        {loading ? 'Running AI Model…' : 'Simulate Impact'}
+        {loading ? 'Simulating...' : 'Simulate Impact'}
       </button>
 
-      {error && (
-        <div className="sim-error">
-          <p>{error}</p>
-        </div>
-      )}
+      {error && <div className="error-message" style={{ color: '#ef4444', marginTop: '1rem', fontSize: '0.85rem' }}>{error}</div>}
 
-      {results && !error && (
-        <div className="sim-results">
-          <h4>Simulation Results</h4>
-
-          <div className="result-row">
-            <span className="result-label">Baseline LST</span>
-            <span className="result-value">{results.baseline?.lst?.toFixed(1) ?? '—'}°C</span>
+      {results && !loading && (
+        <div className="results-box fade-in">
+          <h4>SIMULATION RESULTS</h4>
+          
+          <div className="results-grid">
+            <div className="result-metric">
+              <span className="rm-label">Baseline LST</span>
+              <span className="rm-value">{results.baseline.lst.toFixed(1)}°C</span>
+            </div>
+            
+            <div className="result-metric">
+              <span className="rm-label">Projected LST</span>
+              <span className="rm-value text-blue">{results.simulated.lst.toFixed(1)}°C</span>
+            </div>
+          </div>
+          
+          <div className="delta-pill">
+            Temperature change: <strong className={results.lst_delta < 0 ? 'text-blue' : ''}>{formatDelta(results.lst_delta)}°C</strong>
           </div>
 
-          <div className="result-row">
-            <span className="result-label">Simulated LST</span>
-            <span className="result-value">{results.simulated?.lst?.toFixed(1) ?? '—'}°C</span>
-          </div>
+          <hr className="divider" />
 
-          <div className="result-row">
-            <span className="result-label">Temperature Change</span>
-            <span className={`result-delta ${results.lst_delta < 0 ? 'delta-negative' : 'delta-positive'}`}>
-              {formatDelta(results.lst_delta)}°C
-            </span>
+          <div className="results-grid">
+            <div className="result-metric">
+              <span className="rm-label">Baseline HVI</span>
+              <div className="rm-badge-group">
+                <span className="rm-value">{results.baseline.hvi_score?.toFixed(1) ?? '—'}</span>
+                <span className={`badge badge-${results.baseline.hvi_tier?.toLowerCase().replace('-', '')}`}>
+                  {results.baseline.hvi_tier ?? 'N/A'}
+                </span>
+              </div>
+            </div>
+            
+            <div className="result-metric">
+              <span className="rm-label">Projected HVI</span>
+              <div className="rm-badge-group">
+                <span className="rm-value">{results.simulated.hvi_score?.toFixed(1) ?? '—'}</span>
+                <span className={`badge badge-${results.simulated.hvi_tier?.toLowerCase().replace('-', '')}`}>
+                  {results.simulated.hvi_tier ?? 'N/A'}
+                </span>
+              </div>
+            </div>
           </div>
-
-          <div className="result-row">
-            <span className="result-label">Baseline Tier</span>
-            <span className={`badge badge-${(results.baseline?.hvi_tier || '').toLowerCase().replace('-', '')}`}>
-              {results.baseline?.hvi_tier ?? '—'}
-            </span>
-          </div>
-
-          <div className="result-row">
-            <span className="result-label">Simulated Tier</span>
-            <span className={`badge badge-${(results.simulated?.hvi_tier || '').toLowerCase().replace('-', '')}`}>
-              {results.simulated?.hvi_tier ?? '—'}
-            </span>
-          </div>
-
-          <div className="result-row">
-            <span className="result-label">HVI Change</span>
-            <span className={`result-delta ${results.hvi_delta < 0 ? 'delta-negative' : 'delta-positive'}`}>
-              {formatDelta(results.hvi_delta)} pts
-            </span>
-          </div>
-
+          
           {selectedCell && (
-            <button
-              className="btn btn-outline full-width"
-              style={{ marginTop: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+            <button 
+              className="btn btn-outline"
+              style={{ width: '100%', marginTop: '1.5rem', fontSize: '0.85rem', padding: '0.5rem' }}
               onClick={handleDownload}
             >
-              <Download size={16} />
-              Export Block Report
+              <Download size={14} /> Download Scenario Report
             </button>
           )}
         </div>

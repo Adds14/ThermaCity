@@ -122,6 +122,78 @@ async def get_grid(
     }
 
 
+@router.get("/locate")
+async def locate_grid_cell(
+    lat: float = Query(..., description="Latitude"),
+    lng: float = Query(..., description="Longitude"),
+    year: int = Query(2026, ge=2020, le=2030),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Given a lat/lng point, find which grid cell contains it
+    and return that cell's environmental features + ward info.
+    """
+    from geoalchemy2 import WKTElement
+    from app.models.ward_boundary import WardBoundary
+
+    point_wkt = WKTElement(f"SRID=4326;POINT({lng} {lat})", srid=4326)
+
+    # Find the grid cell that contains this point
+    stmt = (
+        select(SpatialGrid, EnvironmentalFeature)
+        .outerjoin(
+            EnvironmentalFeature,
+            (SpatialGrid.id == EnvironmentalFeature.grid_id)
+            & (EnvironmentalFeature.year == year),
+        )
+        .where(SpatialGrid.geom.ST_Contains(point_wkt))
+        .limit(1)
+    )
+    result = await db.execute(stmt)
+    row = result.first()
+
+    if not row:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No grid cell found at ({lat}, {lng}). This location may be outside Pune's coverage area.",
+        )
+
+    grid_cell, env = row
+
+    # Get ward info
+    ward_info = {"id": grid_cell.ward_id, "ward_name": "Unknown"}
+    if grid_cell.ward_id:
+        ward_stmt = select(WardBoundary).where(WardBoundary.id == grid_cell.ward_id)
+        ward_result = await db.execute(ward_stmt)
+        ward = ward_result.scalar_one_or_none()
+        if ward:
+            ward_info = {"id": ward.id, "ward_name": ward.ward_name}
+
+    features = {}
+    if env:
+        features = {
+            "lst_observed": env.lst_observed,
+            "lst_predicted": env.lst_predicted,
+            "ndvi": env.ndvi,
+            "ndbi": env.ndbi,
+            "ndwi": env.ndwi,
+            "tree_canopy_pct": env.tree_canopy_frac,
+            "humidity": env.humidity,
+            "wind_speed": env.wind_speed,
+            "population_density": env.population_density,
+            "hvi_score": env.hvi_score,
+            "hvi_tier": env.hvi_tier,
+        }
+
+    return {
+        "cell_id": grid_cell.id,
+        "cell_code": grid_cell.cell_code,
+        "ward": ward_info,
+        "features": features,
+        "year": year,
+    }
+
+
 @router.get("/{cell_id}")
 async def get_grid_cell(
     cell_id: int,

@@ -24,87 +24,199 @@
   left: 16px;
   z-index: 1000;
   display: flex;
-  gap: 12px;
-  padding: 14px 18px;
+  flex-direction: column;
+  padding: 16px 20px;
   animation: slide-in-left 0.5s ease-out;
+  background: rgba(11, 15, 25, 0.85);
+}
+
+.kpi-header {
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--panel-border);
+  padding-bottom: 8px;
+}
+
+.kpi-header h4 {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  margin: 0;
+}
+
+.kpi-grid {
+  display: flex;
+  gap: 16px;
 }
 
 .kpi-card {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  min-width: 100px;
-  padding: 0 12px;
-  border-right: 1px solid var(--panel-border);
-}
-
-.kpi-card:last-child {
-  border-right: none;
+  min-width: 80px;
 }
 
 .kpi-card .label {
   font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
   color: var(--text-muted);
   margin-bottom: 4px;
-  font-weight: 500;
 }
 
 .kpi-card .value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #f8fafc;
+  color: #fff;
   line-height: 1;
 }
 
-.kpi-card.danger .value {
-  color: var(--tier-emergency);
-  text-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
-}
+.kpi-card.danger .value { color: var(--tier-emergency); }
+.kpi-card.warning .value { color: var(--tier-stressed); }
+.kpi-card.safe .value { color: var(--tier-safe); }
 
-.kpi-card.warning .value {
-  color: var(--tier-stressed);
-}
-
-.kpi-card.safe .value {
-  color: var(--tier-safe);
-}
-
-/* Year selector overlay */
-.year-overlay {
+/* Timeline Overlay */
+.year-timeline {
   position: absolute;
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 1000;
-  display: flex;
-  gap: 4px;
-  padding: 6px 8px;
+  padding: 12px 24px;
+  background: rgba(11, 15, 25, 0.85);
 }
 
-.year-btn {
-  padding: 6px 16px;
+.timeline-track {
+  display: flex;
+  align-items: center;
+}
+
+.timeline-node {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.timeline-line {
+  width: 40px;
+  height: 2px;
+  background: var(--panel-border);
+  margin: 0 4px;
+}
+
+.year-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.year-dot:hover {
+  background: #fff;
+  transform: scale(1.2);
+}
+
+.year-dot.active {
+  background: var(--accent-color);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
+  transform: scale(1.2);
+}
+
+.year-label {
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.year-label.active {
+  color: #fff;
+  font-weight: 700;
+}
+
+/* Secondary Controls */
+.ward-controls-overlay {
+  position: absolute;
+  top: 110px;
+  left: 16px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: slide-in-left 0.3s ease-out;
+}
+
+.btn-back-wards {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--border-radius-sm);
   border: 1px solid var(--panel-border);
+  background: rgba(11, 15, 25, 0.85);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font-weight: 500;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-back-wards:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.ward-name-badge {
+  padding: 8px 16px;
+  border-radius: var(--border-radius-sm);
+  background: rgba(11, 15, 25, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--panel-border);
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #fff;
+}
+
+/* Map Toggle */
+.map-toggle-overlay {
+  position: absolute;
+  bottom: 24px;
+  right: 16px;
+  z-index: 1000;
+  display: flex;
+  background: rgba(11, 15, 25, 0.95);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--panel-border);
+  overflow: hidden;
+}
+
+.toggle-btn {
+  padding: 8px 16px;
+  border: none;
   background: transparent;
   color: var(--text-muted);
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.8rem;
   font-weight: 500;
-  font-family: var(--font-family);
-  transition: all 0.2s ease;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.year-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-main);
+.toggle-btn:hover {
+  color: #fff;
 }
 
-.year-btn.active {
-  background: var(--accent-color);
-  color: white;
-  border-color: var(--accent-color);
+.toggle-btn.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.toggle-btn.active-heat {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--tier-emergency);
 }
 
 /* Loading overlay */
@@ -116,8 +228,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(11, 15, 25, 0.85);
-  backdrop-filter: blur(8px);
+  background: rgba(11, 15, 25, 0.95);
 }
 
 .spinner {
@@ -203,7 +314,6 @@
 /* Leaflet popup custom styling */
 .leaflet-popup-content-wrapper {
   background: rgba(20, 25, 35, 0.95) !important;
-  backdrop-filter: blur(12px) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   border-radius: 12px !important;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
