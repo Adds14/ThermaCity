@@ -174,18 +174,17 @@ Satellite & Climate Data                    Citizens
 
 ## Dashboard Outputs
 
-When a municipal officer opens ThermaCity during a heatwave alert, they see:
+When a municipal officer or citizen opens ThermaCity, they see:
 
 | View | What It Shows | Who Uses It |
 |------|---------------|-------------|
+| **Editorial Landing Page** | An educational narrative explaining the Urban Heat Island effect and the ThermaCity methodology. | Public / Students |
+| **Know Your Heat Dashboard** | Personalised dashboard for any searched location, comparing its temperature, vegetation, and built-up density against the Pune average using data bars. | Citizens |
+| **Compare Areas** | Side-by-side comparative analysis of two different neighbourhoods (e.g. Aundh vs. Hadapsar). | Citizens / Planners |
 | **Ward-First Navigation** | 41 official PMC wards with aggregate heat scores. Click a ward to drill down into its 100m blocks. | Disaster management |
-| **City-wide Heat Risk Map** | Every 100m block colour-coded by vulnerability, bounded to Pune with a clean white basemap | Disaster management |
-| **Normal / Heatmap Toggle** | Switch between a clean street map and the HVI heatmap overlay to orient yourself | All users |
-| **Block-Level Simulation** | "What if we plant 500 trees here?" — block-specific precision before/after risk comparison | Budget proposals |
-| **SHAP Explainability** | Click a block to see dynamic, plain-English explanations of the exact physical and demographic factors driving its specific heat risk | Public / Planners |
-| **Automated PDF Reports** | Publication-ready PDF downloads for macro (city-wide) or micro (specific 100m block) risk assessment | Planners / Public |
-| **Temporal Change (2021–2026)** | Year slider showing which areas got worse over time | Urban planners |
-| **Verified Report Markers** | Red "!" markers on the map for admin-verified citizen reports | All users |
+| **City-wide Heat Risk Map** | Every 100m block colour-coded by vulnerability, bounded to Pune with a clean white basemap. | Disaster management |
+| **Block-Level Simulation** | "What if we plant 500 trees here?" — block-specific precision before/after risk comparison. | Budget proposals |
+| **Verified Report Markers** | Red "!" markers on the map for admin-verified citizen reports. | All users |
 
 ### Admin Dashboard (Separate Site)
 
