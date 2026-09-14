@@ -13,7 +13,7 @@
 
 /* Override Leaflet tile pane for light theme */
 .leaflet-container {
-  background: #f8fafc !important;
+  background: var(--bg-color) !important;
   font-family: var(--font-family) !important;
 }
 
@@ -141,7 +141,7 @@
 /* Secondary Controls */
 .ward-controls-overlay {
   position: absolute;
-  top: 110px;
+  top: 160px;
   left: 16px;
   z-index: 1000;
   display: flex;

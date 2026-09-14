@@ -82,7 +82,7 @@ export default function ScenarioPanel({ year = 2026, selectedCell = null }) {
   };
 
   return (
-    <div className="scenario-panel glass-panel">
+    <div className="scenario-panel panel">
       <div className="panel-header">
         <h3><Sliders size={18} /> {selectedCell ? `Block Simulator (ID: ${selectedCell.cell_id})` : 'City Simulator'}</h3>
         <p className="subtitle">Model cooling interventions &amp; see predicted impact.</p>
@@ -198,6 +198,10 @@ export default function ScenarioPanel({ year = 2026, selectedCell = null }) {
               <Download size={14} /> Download Scenario Report
             </button>
           )}
+
+          <div className="simulator-disclaimer" style={{ marginTop: '1.5rem', padding: '0.8rem', fontSize: '0.85rem', color: 'var(--text-muted)', borderTop: '1px solid var(--panel-border)' }}>
+            <p><strong>Note:</strong> Projected values are model-based scenario estimates, not observed future measurements.</p>
+          </div>
         </div>
       )}
     </div>

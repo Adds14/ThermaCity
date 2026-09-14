@@ -10,10 +10,10 @@ const PUNE_BOUNDS = [[18.40, 73.72], [18.65, 73.99]];
 const YEARS = [2021, 2022, 2023, 2024, 2025, 2026];
 
 const TIER_COLORS = {
-  'Heat-Safe': '#10b981',
-  'Caution': '#fbbf24',
-  'Stressed': '#f97316',
-  'Emergency': '#ef4444',
+  'Heat-Safe': '#10B981',
+  'Caution': '#FFC107',
+  'Stressed': '#FF5C35',
+  'Emergency': '#FF2D20',
 };
 
 const TIER_FILL_OPACITY = {
@@ -59,6 +59,8 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
     }
   }, [externalYear]);
 
+  const [mapReady, setMapReady] = useState(false);
+
   // Read URL params for auto-drilldown
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -93,13 +95,15 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
 
     // Light tile layer (CartoDB Positron)
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
       subdomains: 'abcd',
       maxZoom: 16,
     }).addTo(mapInstance.current);
 
     L.control.zoom({ position: 'topright' }).addTo(mapInstance.current);
     L.control.attribution({ position: 'bottomright' }).addTo(mapInstance.current);
+
+    setMapReady(true);
 
     return () => {
       if (mapInstance.current) {
@@ -206,7 +210,7 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
 
           // Hover effect
           layer.on('mouseover', () => {
-            layer.setStyle({ weight: 3, fillOpacity: 0.9 });
+            layer.setStyle({ weight: 3, fillOpacity: 0.9, color: '#fff' });
             layer.bringToFront();
           });
           layer.on('mouseout', () => {
@@ -395,7 +399,7 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
             });
 
             layer.on('mouseover', () => {
-              layer.setStyle({ weight: 2, fillOpacity: 0.9 });
+              layer.setStyle({ weight: 2, fillOpacity: 0.9, color: '#fff' });
               layer.bringToFront();
             });
             layer.on('mouseout', () => {
@@ -508,13 +512,13 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
 
   // ── React to viewMode / year changes ─────────────────────
   useEffect(() => {
-    if (!mapInstance.current) return;
+    if (!mapReady || !mapInstance.current) return;
     if (viewMode === 'wards') {
       loadWards();
     } else if (viewMode === 'blocks' && selectedWard) {
       loadWardBlocks(selectedWard);
     }
-  }, [viewMode, year, selectedWard, loadWards, loadWardBlocks]);
+  }, [viewMode, year, selectedWard, loadWards, loadWardBlocks, mapReady]);
 
   // Toggle heatmap visibility
   useEffect(() => {
@@ -552,7 +556,7 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
 
       {/* KPI Overlay */}
       {summary && !loading && showHeatmap && (
-        <div className="kpi-overlay glass-panel">
+        <div className="kpi-overlay panel">
           <div className="kpi-header">
             <h4>PUNE HEAT STATUS</h4>
           </div>
@@ -608,8 +612,31 @@ export default function HeatMap({ year: externalYear, onCellSelect }) {
         </button>
       </div>
 
+      {/* Map Legend */}
+      <div className="map-legend panel" style={{ position: 'absolute', bottom: '100px', right: '20px', zIndex: 1000, padding: '1rem', background: 'var(--panel-bg)', borderRadius: '6px', border: '1px solid var(--panel-border)', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.5)' }}>
+        <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>VULNERABILITY SCALE</h4>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ width: '12px', height: '12px', background: 'var(--tier-emergency)', borderRadius: '2px' }}></div>
+            <span style={{ fontSize: '0.85rem' }}>76–100 <strong>EMERGENCY</strong></span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ width: '12px', height: '12px', background: 'var(--tier-stressed)', borderRadius: '2px' }}></div>
+            <span style={{ fontSize: '0.85rem' }}>51–75 <strong>STRESSED</strong></span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ width: '12px', height: '12px', background: 'var(--tier-caution)', borderRadius: '2px' }}></div>
+            <span style={{ fontSize: '0.85rem' }}>26–50 <strong>CAUTION</strong></span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ width: '12px', height: '12px', background: 'var(--tier-safe)', borderRadius: '2px' }}></div>
+            <span style={{ fontSize: '0.85rem' }}>0–25 <strong>HEAT-SAFE</strong></span>
+          </div>
+        </div>
+      </div>
+
       {/* Year selector / Timeline */}
-      <div className="year-timeline glass-panel">
+      <div className="year-timeline panel">
         <div className="timeline-track">
           {YEARS.map((y, idx) => (
             <div key={y} className="timeline-node">

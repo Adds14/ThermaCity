@@ -66,12 +66,17 @@ export default function WardRankings() {
   }
 
   return (
-    <div className="ward-rankings-container animate-slide-in">
-      <header className="page-header">
-        <h2>Ward Vulnerability</h2>
-        <p className="subtitle">41 wards analyzed</p>
-      </header>
-
+    <div className="ward-rankings panel">
+      <div className="wr-header">
+        <h2>Ward Heat Vulnerability</h2>
+        <div className="wr-stats">
+          <span>{wards.length} wards analyzed</span>
+          <span>• Ranked by average Heat Vulnerability Index across each ward</span>
+        </div>
+        <p style={{ marginTop: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+          A ward's score is an aggregate of the underlying 100×100m analysis cells within that ward.
+        </p>
+      </div>
       <div className="summary-cards">
         {highestRisk && (
           <div className="summary-card danger">
@@ -87,7 +92,7 @@ export default function WardRankings() {
         </div>
       </div>
 
-      <div className="distribution-section glass-panel">
+      <div className="distribution-section panel">
         <h3>HVI Distribution</h3>
         <div className="dist-bars">
           {Object.entries(distribution).map(([tier, count]) => {

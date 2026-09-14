@@ -1,242 +1,108 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, Map, Thermometer, Droplets, TreePine, Building2, TrendingUp, Sun, Activity, Users, Home } from 'lucide-react';
-import GlobalNav from '../components/GlobalNav';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Activity, ThermometerSun, Map as MapIcon } from 'lucide-react';
 import './LandingPage.css';
 
 export default function LandingPage() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const navigate = useNavigate();
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/know-your-heat?q=${encodeURIComponent(searchQuery)}`);
-    }
-  };
-
   return (
     <div className="landing-container">
-      <GlobalNav />
+      {/* Background Heat Field (CSS animated) */}
+      <div className="bg-heat-field">
+        <div className="heat-blob blob-1"></div>
+        <div className="heat-blob blob-2"></div>
+        <div className="heat-blob blob-3"></div>
+      </div>
 
-      {/* ── 1. HERO SECTION ── */}
-      <section className="hero-section">
+      <div className="hero-section">
         <div className="hero-content">
-          <div className="hero-tag">ThermaCity</div>
-          <h1 className="hero-title">Understanding Urban Heat in Pune</h1>
+          <div className="hero-brand">THERMACITY</div>
+          <h1 className="huge-title">
+            YOUR CITY<br />
+            IS HEATING<br />
+            <span className="text-orange">UP.</span>
+          </h1>
           <p className="hero-subtitle">
-            Urban heat is not distributed evenly across a city. ThermaCity helps you explore how built-up surfaces, vegetation, water, temperature and local conditions influence heat at the neighbourhood level.
+            Understand the heat vulnerability where you live through high-resolution satellite imagery and deterministic modeling.
           </p>
-          
-          <div className="hero-search-box">
-            <h3>KNOW THE UHI AT YOUR PLACE</h3>
-            <form className="hero-search-form" onSubmit={handleSearch}>
-              <div className="search-input-wrapper">
-                <Search size={18} className="search-icon" />
-                <input 
-                  type="text" 
-                  placeholder="Search your area, locality or address..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <button type="submit" className="btn btn-primary">Explore Heat</button>
-            </form>
-            <div className="popular-areas">
-              <span>Popular areas:</span>
-              <button onClick={() => navigate('/know-your-heat?q=Wakad')}>Wakad</button>
-              <button onClick={() => navigate('/know-your-heat?q=Baner')}>Baner</button>
-              <button onClick={() => navigate('/know-your-heat?q=Kothrud')}>Kothrud</button>
-              <button onClick={() => navigate('/know-your-heat?q=Aundh')}>Aundh</button>
-              <button onClick={() => navigate('/know-your-heat?q=Hadapsar')}>Hadapsar</button>
-            </div>
-          </div>
+          <Link to="/know-your-heat" className="btn-explore">
+            EXPLORE YOUR AREA <ArrowRight size={20} />
+          </Link>
         </div>
         
-        {/* Abstract Data Visualization Background */}
         <div className="hero-visual">
-          <div className="data-grid">
-            {Array.from({ length: 64 }).map((_, i) => (
-              <div 
-                key={i} 
-                className="grid-cell"
-                style={{
-                  opacity: Math.random() * 0.5 + 0.1,
-                  backgroundColor: Math.random() > 0.7 ? 'var(--tier-stressed)' : (Math.random() > 0.4 ? 'var(--tier-caution)' : 'var(--tier-safe)')
-                }}
-              />
-            ))}
+          <div className="experimental-card">
+            <div className="ec-label">AVG HEAT VULNERABILITY</div>
+            <div className="ec-value huge-number">38.4</div>
+            <div className="ec-scale">
+              <div className="ec-bar" style={{ width: '38.4%' }}></div>
+            </div>
+            <div className="ec-footer text-acid">ELEVATED EXPOSURE DETECTED</div>
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* ── 2. WHAT IS UHI? ── */}
-      <section className="editorial-section border-top">
-        <div className="section-header">
-          <h2>What is the Urban Heat Island effect?</h2>
-          <p className="section-desc">
-            Urban areas can become warmer than their surrounding areas because roads, buildings, concrete and other built surfaces absorb and retain heat. Vegetation and water can reduce this effect through shade, evapotranspiration and cooling.
-          </p>
+      <div className="data-journalism-section">
+        <div className="dj-header">
+          <h2>THE SCIENCE OF URBAN HEAT</h2>
         </div>
         
-        <div className="uhi-diagram">
-          <div className="uhi-side cool-side">
-            <h4>COOLER ENVIRONMENT</h4>
-            <div className="uhi-visual"><TreePine size={48} strokeWidth={1.5} /></div>
-            <p><strong>Vegetation / Open Space</strong></p>
-            <ul>
-              <li>More shade</li>
-              <li>Evapotranspiration</li>
-              <li>Lower heat retention</li>
-            </ul>
+        <div className="dj-grid">
+          <div className="dj-card panel">
+            <div className="dj-icon"><ThermometerSun size={24} className="text-orange"/></div>
+            <h3>Land Surface Temp (LST)</h3>
+            <p>Our ML model predicts surface temperatures across a 100×100m grid using Landsat & Sentinel-2 satellite data, capturing micro-heat islands.</p>
           </div>
           
-          <div className="uhi-arrow">
-            <TrendingUp size={32} />
+          <div className="dj-card panel">
+            <div className="dj-icon"><Activity size={24} className="text-acid"/></div>
+            <h3>Human Vulnerability</h3>
+            <p>Temperature alone doesn't equal risk. We combine LST with population density, tree canopy deficit, and humidity to calculate true exposure.</p>
           </div>
 
-          <div className="uhi-side hot-side">
-            <h4>URBAN SURFACES</h4>
-            <div className="uhi-visual"><Building2 size={48} strokeWidth={1.5} /></div>
-            <p><strong>Buildings / Roads / Concrete</strong></p>
-            <ul>
-              <li>Absorb solar radiation</li>
-              <li>Store heat</li>
-              <li>Release heat after sunset</li>
-            </ul>
+          <div className="dj-card panel">
+            <div className="dj-icon"><MapIcon size={24} className="text-cyan"/></div>
+            <h3>Actionable Simulation</h3>
+            <p>Model cooling interventions like tree planting and cool roofs in real-time to see their predicted impact on local heat vulnerability.</p>
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* ── 3. WHY IT MATTERS ── */}
-      <section className="editorial-section border-top bg-alt">
-        <div className="section-header">
-          <h2>Why does urban heat matter?</h2>
-        </div>
-        <div className="impact-grid">
-          <div className="impact-block">
-            <Users size={24} className="impact-icon text-caution" />
-            <h4>1. Human comfort</h4>
-            <p>Higher surface and air temperatures make outdoor environments less comfortable and reduce livability.</p>
-          </div>
-          <div className="impact-block">
-            <Activity size={24} className="impact-icon text-emergency" />
-            <h4>2. Public health</h4>
-            <p>Extreme heat can increase heat-related health risks, particularly for vulnerable populations and outdoor workers.</p>
-          </div>
-          <div className="impact-block">
-            <Sun size={24} className="impact-icon text-stressed" />
-            <h4>3. Energy demand</h4>
-            <p>Hotter neighbourhoods can increase cooling requirements and electricity demand during summer months.</p>
-          </div>
-          <div className="impact-block">
-            <Map size={24} className="impact-icon text-safe" />
-            <h4>4. Urban environment</h4>
-            <p>Areas with less vegetation and more impervious surfaces can retain heat for longer, compounding the effect.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* ── 4. WHAT SHAPES HEAT? ── */}
-      <section className="editorial-section border-top">
-        <div className="section-header">
-          <h2>What shapes heat in a neighbourhood?</h2>
-          <p className="section-desc">ThermaCity measures these major environmental factors to estimate vulnerability.</p>
+      <div className="methodology-section panel">
+        <div className="meth-header">
+          <h4 className="text-muted">METHODOLOGY</h4>
+          <h2>How HVI is Calculated</h2>
         </div>
         
-        <div className="factors-list">
-          <div className="factor-row">
-            <div className="f-icon"><Thermometer size={28} /></div>
-            <div className="f-content">
-              <h4>TEMPERATURE</h4>
-              <p>How warm is the area? We look at Land Surface Temperature (LST) derived from satellite thermal sensors.</p>
-            </div>
+        <div className="formula-display">
+          <div className="formula-part text-orange">
+            <span className="fp-val">35%</span>
+            <span className="fp-lbl">SURFACE HEAT</span>
           </div>
-          <div className="factor-row">
-            <div className="f-icon text-safe"><TreePine size={28} /></div>
-            <div className="f-content">
-              <h4>VEGETATION</h4>
-              <p>How much cooling vegetation is present? Measured using the Normalized Difference Vegetation Index (NDVI).</p>
-            </div>
+          <div className="formula-op">+</div>
+          <div className="formula-part text-acid">
+            <span className="fp-val">20%</span>
+            <span className="fp-lbl">POPULATION</span>
           </div>
-          <div className="factor-row">
-            <div className="f-icon text-muted"><Building2 size={28} /></div>
-            <div className="f-content">
-              <h4>BUILT-UP AREA</h4>
-              <p>How much of the landscape is covered by buildings and hard surfaces? Measured using NDBI.</p>
-            </div>
+          <div className="formula-op">+</div>
+          <div className="formula-part text-cyan">
+            <span className="fp-val">20%</span>
+            <span className="fp-lbl">CANOPY DEFICIT</span>
           </div>
-          <div className="factor-row">
-            <div className="f-icon text-accent"><Droplets size={28} /></div>
-            <div className="f-content">
-              <h4>WATER</h4>
-              <p>Where are cooling water bodies located? Measured using the Normalized Difference Water Index (NDWI).</p>
-            </div>
+          <div className="formula-op">+</div>
+          <div className="formula-part text-blue">
+            <span className="fp-val">25%</span>
+            <span className="fp-lbl">WIND & HUMIDITY</span>
+          </div>
+          <div className="formula-arrow">→</div>
+          <div className="formula-result">
+            <span className="fp-val text-main">HVI</span>
+            <span className="fp-lbl">0–100 SCORE</span>
           </div>
         </div>
-      </section>
-
-      {/* ── 5. METHODOLOGY ── */}
-      <section className="editorial-section border-top bg-alt">
-        <div className="section-header">
-          <h2>How is the Urban Heat Index calculated?</h2>
-          <p className="section-desc">
-            The index combines multiple environmental indicators to estimate relative urban heat conditions across neighbourhoods. It is a normalized score (0-100) representing relative vulnerability, not an absolute temperature.
-          </p>
-        </div>
-        
-        <div className="methodology-diagram">
-          <div className="math-box">Temperature</div>
-          <div className="math-op">+</div>
-          <div className="math-box">Built-up intensity</div>
-          <div className="math-op">+</div>
-          <div className="math-box">Vegetation deficit</div>
-          <div className="math-op">+</div>
-          <div className="math-box">Water / cooling influence</div>
-          <div className="math-arrow">↓</div>
-          <div className="math-result bg-stressed text-main">Urban Heat Index</div>
-        </div>
-      </section>
-
-      {/* ── 6. DATA TO ACTION ── */}
-      <section className="editorial-section border-top">
-        <div className="section-header">
-          <h2>From Data to Action</h2>
-        </div>
-        
-        <div className="personas-grid">
-          <div className="persona-block">
-            <Home className="p-icon" />
-            <h4>FOR RESIDENTS</h4>
-            <p>Understand how hot your neighbourhood is compared to the city average.</p>
-          </div>
-          <div className="persona-block">
-            <Users className="p-icon" />
-            <h4>FOR STUDENTS</h4>
-            <p>Explore and learn about urban climate patterns using real environmental data.</p>
-          </div>
-          <div className="persona-block">
-            <Activity className="p-icon" />
-            <h4>FOR RESEARCHERS</h4>
-            <p>Use neighbourhood-level environmental indicators for urban studies.</p>
-          </div>
-          <div className="persona-block">
-            <Map className="p-icon" />
-            <h4>FOR PLANNERS</h4>
-            <p>Identify areas that may benefit from cooling interventions and urban forestry.</p>
-          </div>
-        </div>
-      </section>
-
-      <footer className="editorial-footer">
-        <div className="footer-content">
-          <h2>Ready to explore Pune's climate data?</h2>
-          <div className="footer-actions">
-            <button className="btn btn-primary" onClick={() => navigate('/explore/map')}>Explore Heat Map</button>
-            <button className="btn btn-outline" onClick={() => navigate('/compare')}>Compare Areas</button>
-          </div>
-        </div>
-      </footer>
+      </div>
+      
+      <div className="data-sources">
+        <span className="text-muted">DATA SOURCES:</span> Landsat 8/9 • Sentinel-2 • ESA WorldCover • ERA5-Land • WorldPop
+      </div>
     </div>
   );
 }

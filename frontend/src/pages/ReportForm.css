@@ -210,6 +210,11 @@
   border-color: var(--accent-color);
 }
 
+.form-input option {
+  background: var(--bg-color);
+  color: #fff;
+}
+
 /* Map */
 .map-wrapper-wizard {
   height: 300px;

@@ -75,7 +75,7 @@ export default function HowItWorks() {
             <div className="tl-num">05</div>
             <div className="tl-card">
               <BookOpen className="tl-icon text-muted" size={32} />
-              <h2>How to interpret the Urban Heat Index</h2>
+              <h2>How to interpret the Heat Vulnerability Index</h2>
               <p>
                 These four indices are mathematically combined and normalized into the ThermaCity Heat Vulnerability Index (HVI), 
                 scored from 0 to 100. A score of 100 does not mean 100°C; rather, it indicates the highest relative heat vulnerability 
