@@ -72,7 +72,7 @@ export default function CompareAreas() {
       setStatus('success');
     } catch (err) {
       setStatus('error');
-      setErrorMsg(err.message || 'Failed to compare areas.');
+      setErrorMsg("Area out of Pune, please try other area.");
     }
   };
 

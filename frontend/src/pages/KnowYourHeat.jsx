@@ -62,7 +62,7 @@ export default function KnowYourHeat() {
     } catch (err) {
       console.error(err);
       setStatus('error');
-      setErrorMsg(err.message === "LOCATION_NOT_FOUND" ? "LOCATION UNKNOWN. PLEASE TRY A PUNE NEIGHBOURHOOD." : "SYSTEM ERROR DURING SATELLITE QUERY.");
+      setErrorMsg("Area out of Pune, please try other area.");
     }
   };
 
@@ -98,7 +98,7 @@ export default function KnowYourHeat() {
                     <Search size={20} className="search-icon" />
                     <input 
                       type="text" 
-                      placeholder="Search Pune, Wakad, Hinjewadi..." 
+                      placeholder="Search Aundh, Koregaon Park..." 
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
                     />
