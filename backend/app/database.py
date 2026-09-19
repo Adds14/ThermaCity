@@ -22,6 +22,7 @@ engine = create_async_engine(
     pool_size=10,
     max_overflow=20,
     pool_pre_ping=True,        # Reconnect on stale connections
+    connect_args={"prepared_statement_cache_size": 0}, # Required for Supabase transaction pooler
 )
 
 # ── Session Factory ───────────────────────────────────────────
