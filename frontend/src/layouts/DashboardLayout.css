@@ -156,13 +156,7 @@
 .dot.stressed { background: var(--tier-stressed); }
 .dot.emergency { background: var(--tier-emergency); }
 
-.main-content {
-  flex: 1;
-  position: relative;
-  height: 100%;
-  overflow-y: auto;
-  background-color: var(--bg-color);
-}
+.main-content {\n  flex: 1;\n  position: relative;\n  height: 100%;\n  overflow-y: auto;\n  background-color: var(--bg-color);\n  display: flex;\n  flex-direction: column;\n}
 
 @media (max-width: 768px) {
   .layout-container {
