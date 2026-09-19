@@ -1,0 +1,38 @@
+# ── ThermaCity — Caddy Reverse Proxy Configuration ──────────
+#
+# Caddy automatically provisions and renews Let's Encrypt TLS
+# certificates for the API domain. Zero manual cert management.
+#
+# Replace {$API_DOMAIN} with your actual domain via env var,
+# e.g. API_DOMAIN=api.thermacity.com
+# ─────────────────────────────────────────────────────────────
+
+{$API_DOMAIN:api.localhost} {
+	# ── Reverse proxy to FastAPI container ──
+	reverse_proxy fastapi:8000 {
+		# Health check: take backend out of rotation if it's down
+		health_uri /health
+		health_interval 30s
+		health_timeout 5s
+	}
+
+	# ── Security headers ──
+	header {
+		# Prevent MIME-type sniffing
+		X-Content-Type-Options nosniff
+		# Clickjacking protection
+		X-Frame-Options DENY
+		# XSS protection
+		X-XSS-Protection "1; mode=block"
+		# Referrer policy
+		Referrer-Policy strict-origin-when-cross-origin
+		# Remove server header
+		-Server
+	}
+
+	# ── Logging ──
+	log {
+		output stdout
+		format console
+	}
+}

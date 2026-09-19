@@ -19,12 +19,14 @@ gee/exports/
 
 # ─── Environment & secrets ───
 .env
+.env.production
 *.pem
 *.key
 service-account*.json
 credentials/
 *-key.json
 *efed*.json
+~$*
 
 # ─── Database ───
 pgdata/

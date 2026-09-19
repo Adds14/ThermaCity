@@ -22,9 +22,9 @@ class Settings(BaseSettings):
     )
 
     # ── Database ──────────────────────────────────────────────
-    database_url: str = (
-        "postgresql+asyncpg://postgres:ThermaCity123@db.ctjbapfdnyioazajfasp.supabase.co:5432/postgres"
-    )
+    # REQUIRED: Set via DATABASE_URL env var or .env file.
+    # No default — the app will fail to start if this is missing.
+    database_url: str
 
     # Synchronous URL for migrations / scripts (asyncpg → psycopg2)
     @property
@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     ml_model_path: str = "../ml/models/rf_lst_predictor_v1.joblib"
 
     # ── Google Earth Engine ───────────────────────────────────
-    gee_service_account_key: str = "../credentials/thermacity-504715-08378215d2cd.json"
+    gee_service_account_key: str = ""
 
 
     # ── Heat Vulnerability Score Weights ─────────────────────
@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     # ── Server ────────────────────────────────────────────────
     app_name: str = "ThermaCity"
     app_description: str = "Know where the heat hurts most — heat vulnerability mapping for Pune"
-    debug: bool = True
+    debug: bool = False
     api_v1_prefix: str = "/api/v1"
 
     # CORS origins (comma-separated)

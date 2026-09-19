@@ -1,0 +1,43 @@
+# ── ThermaCity Backend .dockerignore ──
+# Keep the Docker context small and exclude secrets.
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.venv/
+venv/
+env/
+
+# Tests (not needed in production image)
+tests/
+pytest.ini
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Environment files (secrets injected at runtime, not baked into image)
+.env
+.env.*
+
+# Alembic (migrations run separately, not inside the container)
+alembic/
+alembic.ini
+
+# Scripts (dev/migration utilities)
+scripts/
+check.py
+test_import.py
+
+# Docker
+Dockerfile
+docker-compose*.yml

@@ -1,0 +1,69 @@
+# ── ThermaCity — Production Docker Compose ──────────────────
+#
+# Deploys the FastAPI backend + Caddy reverse proxy.
+# Database is hosted on Supabase (not in this compose).
+#
+# Usage:
+#   1. Create a .env file on the server (see .env.production.example)
+#   2. docker compose -f docker-compose.prod.yml up -d --build
+#
+# ─────────────────────────────────────────────────────────────
+
+services:
+  # ── Caddy — Reverse Proxy + Auto-HTTPS ──
+  caddy:
+    image: caddy:2-alpine
+    container_name: thermacity_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3 (QUIC)
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data       # TLS certificates
+      - caddy_config:/config   # Caddy runtime config
+    environment:
+      - API_DOMAIN=${API_DOMAIN:?Set API_DOMAIN in .env (e.g. api.thermacity.com)}
+    depends_on:
+      fastapi:
+        condition: service_healthy
+    networks:
+      - thermacity_net
+
+  # ── FastAPI Backend ──
+  fastapi:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: thermacity_api
+    restart: unless-stopped
+    # Internal only — NOT published to host. Caddy proxies to this.
+    expose:
+      - "8000"
+    env_file:
+      - .env.production
+    environment:
+      # Override ML model path for container filesystem
+      - ML_MODEL_PATH=/app/ml_model/rf_lst_predictor_v1.joblib
+    volumes:
+      # Mount the ML model into the container (read-only)
+      - ./ml/models:/app/ml_model:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - thermacity_net
+
+volumes:
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
+
+networks:
+  thermacity_net:
+    driver: bridge
