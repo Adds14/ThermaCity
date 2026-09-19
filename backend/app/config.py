@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
 
     # CORS origins (comma-separated)
-    cors_origins: str = "http://localhost:5173,http://localhost:5174,http://localhost:3000"
+    cors_origins: str = "http://localhost:5173,http://localhost:5174,http://localhost:3000,https://thermacity-ecosan.vercel.app,https://thermacity-admin-dash.vercel.app"
 
     @property
     def cors_origin_list(self) -> list[str]:
