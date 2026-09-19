@@ -157,5 +157,17 @@
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
-@media (max-width: 768px) { .scenario-panel { width: 100vw !important; max-height: 50vh !important; padding: 1rem !important; border-radius: 16px 16px 0 0 !important; } .panel-header h3 { font-size: 0.9rem; } }
+@media (max-width: 768px) {
+  .scenario-panel {
+    width: 100vw !important;
+    max-height: 50vh !important;
+    padding: 1rem !important;
+    border-radius: 16px 16px 0 0 !important;
+  }
+  .panel-header h3 {
+    font-size: 0.9rem;
+  }
+}
