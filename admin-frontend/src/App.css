@@ -154,3 +154,43 @@
 .btn-verify:hover {
   background: rgba(16, 185, 129, 0.25);
 }
+
+
+/* Admin Operations Portal Responsive Grid */
+@media (max-width: 900px) {
+  .ops-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .ops-controls-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ops-filter-tools {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 600px) {
+  .ops-layout, .dashboard-layout {
+    padding: 1rem;
+  }
+  .admin-navbar, .admin-header {
+    padding: 0.75rem 1rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .ops-kpi-grid {
+    grid-template-columns: 1fr; /* Single column stats */
+  }
+  .ops-report-grid, .report-grid {
+    grid-template-columns: 1fr; /* Single column cards */
+  }
+  .ops-filter-tools {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ops-search-box input {
+    width: 100%;
+  }
+}
