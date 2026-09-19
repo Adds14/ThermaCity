@@ -473,3 +473,154 @@
   line-height: 1.3;
 }
 
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 768px) {
+
+  /* KPI overlay: compact single row, full width */
+  .kpi-overlay {
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 10px 12px;
+    border-radius: 0;
+  }
+
+  .kpi-header {
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+  }
+
+  .kpi-header h4 {
+    font-size: 0.65rem;
+  }
+
+  .kpi-grid {
+    gap: 8px;
+    justify-content: space-between;
+  }
+
+  .kpi-card {
+    min-width: auto;
+    flex: 1;
+  }
+
+  .kpi-card .label {
+    font-size: 0.55rem;
+  }
+
+  .kpi-card .value {
+    font-size: 1.1rem;
+  }
+
+  /* Ward controls: move below KPI bar */
+  .ward-controls-overlay {
+    top: 90px;
+    left: 8px;
+    gap: 6px;
+  }
+
+  .btn-back-wards {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
+
+  .ward-name-badge {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    max-width: 180px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Legend: smaller, tucked into corner */
+  .map-legend {
+    bottom: 70px;
+    right: 8px;
+    padding: 8px 10px;
+    min-width: auto;
+    font-size: 0.7rem;
+  }
+
+  .map-legend h4 {
+    font-size: 0.6rem;
+    margin-bottom: 4px;
+  }
+
+  .legend-row {
+    font-size: 0.7rem;
+    gap: 5px;
+    margin-bottom: 2px;
+  }
+
+  .legend-color {
+    width: 10px;
+    height: 10px;
+  }
+
+  /* Timeline: compact */
+  .year-timeline {
+    bottom: 12px;
+    padding: 8px 16px;
+  }
+
+  .timeline-line {
+    width: 20px;
+  }
+
+  .year-dot {
+    width: 10px;
+    height: 10px;
+  }
+
+  .year-label {
+    font-size: 0.6rem;
+    top: -18px;
+  }
+
+  /* Map toggle */
+  .map-toggle-overlay {
+    bottom: 12px;
+    right: 8px;
+  }
+
+  .toggle-btn {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
+
+  /* Popups: constrain width */
+  .leaflet-popup-content-wrapper {
+    max-width: 280px !important;
+  }
+
+  .cell-popup {
+    padding: 12px 14px;
+    min-width: 180px;
+  }
+
+  .cell-popup h4 {
+    font-size: 0.8rem;
+    margin-bottom: 8px;
+  }
+
+  .popup-score .big {
+    font-size: 1.5rem;
+  }
+
+  .shap-item {
+    margin-bottom: 8px;
+  }
+
+  .shap-label {
+    font-size: 0.7rem;
+  }
+
+  .shap-impact {
+    font-size: 0.75rem;
+  }
+
+  .shap-desc {
+    font-size: 0.65rem;
+  }
+}
