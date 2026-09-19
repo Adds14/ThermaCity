@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
@@ -46,11 +46,10 @@ RUN groupadd -r thermacity && useradd -r -g thermacity thermacity
 WORKDIR /app
 
 # Copy application code
-COPY app/ ./app/
+COPY --chown=thermacity:thermacity backend/app/ ./app/
 
-# Copy ML model (the .joblib file is ~48 MB)
-# In production, ML_MODEL_PATH should point to /app/ml_model/rf_lst_predictor_v1.joblib
-COPY --chown=thermacity:thermacity . .
+# Copy ML model
+COPY --chown=thermacity:thermacity ml/models/rf_lst_predictor_v1.joblib ./ml/models/rf_lst_predictor_v1.joblib
 
 # Switch to non-root user
 USER thermacity
