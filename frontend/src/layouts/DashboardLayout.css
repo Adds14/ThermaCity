@@ -177,7 +177,7 @@
     flex-direction: row;
     border-right: none;
     border-top: 1px solid var(--panel-border);
-    z-index: 100;
+    position: relative; z-index: 1005; background: var(--panel-bg);
   }
   
   /* Hide unnecessary elements on mobile to save space */
