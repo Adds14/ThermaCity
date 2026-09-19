@@ -11,7 +11,7 @@ services:
       - key: DATABASE_URL
         value: postgresql+asyncpg://postgres.ctjbapfdnyioazajfasp:ThermaCity123@aws-0-ap-south-1.pooler.supabase.com:6543/postgres
       - key: CORS_ORIGINS
-        value: https://frontend-jet-tau-47.vercel.app,https://admin-frontend-chi-weld.vercel.app
+        value: https://thermacity.vercel.app,https://frontend-jet-tau-47.vercel.app,https://admin-frontend-chi-weld.vercel.app
       - key: ML_MODEL_PATH
         value: /app/ml/models/rf_lst_predictor_v1.joblib
       - key: DEBUG
