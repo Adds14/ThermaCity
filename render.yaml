@@ -9,7 +9,7 @@ services:
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
-        value: postgresql+asyncpg://postgres.ctjbapfdnyioazajfasp:ThermaCity123@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?statement_cache_size=0
+        value: postgresql+asyncpg://postgres.ctjbapfdnyioazajfasp:ThermaCity123@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?prepared_statement_cache_size=0
       - key: CORS_ORIGINS
         value: https://thermacity.vercel.app,https://frontend-jet-tau-47.vercel.app,https://admin-frontend-chi-weld.vercel.app
       - key: ML_MODEL_PATH
