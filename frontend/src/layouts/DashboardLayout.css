@@ -163,3 +163,58 @@
   overflow-y: auto;
   background-color: var(--bg-color);
 }
+
+@media (max-width: 768px) {
+  .layout-container {
+    flex-direction: column-reverse; /* Main content takes most space, nav at bottom */
+  }
+  
+  .sidebar {
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    border-right: none;
+    border-top: 1px solid var(--panel-border);
+    z-index: 100;
+  }
+  
+  /* Hide unnecessary elements on mobile to save space */
+  .sidebar-header,
+  .sidebar-spacer,
+  .sidebar-actions,
+  .sidebar-footer,
+  .section-label,
+  .sidebar-section:nth-of-type(2) /* Your Location section */ {
+    display: none;
+  }
+  
+  .sidebar-section {
+    padding: 0;
+    width: 100%;
+  }
+  
+  .nav-links {
+    flex-direction: row;
+    width: 100%;
+  }
+  
+  .nav-links li {
+    flex: 1;
+  }
+  
+  .nav-links a {
+    flex-direction: column;
+    padding: 0.5rem;
+    font-size: 0.7rem;
+    gap: 0.25rem;
+    border-radius: 0;
+    justify-content: center;
+    text-align: center;
+    border: none;
+  }
+  
+  .nav-links a.active {
+    border-top: 2px solid var(--accent-orange);
+    background: rgba(255, 77, 0, 0.05);
+  }
+}
