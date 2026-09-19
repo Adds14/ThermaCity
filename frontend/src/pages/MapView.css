@@ -1,4 +1,11 @@
-.map-view-container {\n  flex: 1;\n  position: relative;\n  width: 100%;\n  min-height: 0;\n  display: flex;\n  flex-direction: column;\n}
+.map-view-container {
+  flex: 1;
+  position: relative;
+  width: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
 
 .scenario-overlay {
   position: absolute;

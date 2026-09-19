@@ -1,4 +1,11 @@
-.map-wrapper {\n  flex: 1;\n  position: relative;\n  width: 100%;\n  min-height: 0;\n  overflow: hidden;\n  border-radius: var(--border-radius);\n}
+.map-wrapper {
+  flex: 1;
+  position: relative;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--border-radius);
+}
 
 .map-container {
   width: 100%;
