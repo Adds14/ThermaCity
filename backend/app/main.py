@@ -17,6 +17,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 
 from app.config import settings
 from app.services.ml_predictor import MLPredictor
@@ -116,6 +117,44 @@ def create_app() -> FastAPI:
     app.include_router(reports.router, prefix=settings.api_v1_prefix)
     app.include_router(scenario.router, prefix=settings.api_v1_prefix)
 
+    # ── Root page — shows backend is running ──
+    @app.get("/", tags=["System"], response_class=HTMLResponse)
+    async def root():
+        model_status = "✅ Loaded" if ml_predictor else "❌ Not loaded"
+        return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThermaCity Backend</title>
+  <style>
+    * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+    body {{ min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #0b0f19; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }}
+    .card {{ background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 3rem; max-width: 480px; text-align: center; }}
+    h1 {{ font-size: 1.75rem; margin-bottom: 0.5rem; background: linear-gradient(90deg, #ff4d00, #ff8c00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }}
+    .subtitle {{ color: #94a3b8; font-size: 0.9rem; margin-bottom: 2rem; }}
+    .status {{ display: flex; align-items: center; gap: 8px; justify-content: center; margin-bottom: 1rem; }}
+    .dot {{ width: 10px; height: 10px; border-radius: 50%; background: #22c55e; animation: pulse 2s infinite; }}
+    @keyframes pulse {{ 0%, 100% {{ opacity: 1; }} 50% {{ opacity: 0.5; }} }}
+    .info {{ font-size: 0.85rem; color: #94a3b8; margin-top: 1.5rem; }}
+    .info a {{ color: #60a5fa; text-decoration: none; }}
+    .model {{ margin-top: 0.5rem; font-size: 0.8rem; color: #64748b; }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🌡️ ThermaCity</h1>
+    <p class="subtitle">Heat Vulnerability Intelligence Engine</p>
+    <div class="status"><div class="dot"></div> <strong>Backend is running</strong></div>
+    <p class="model">ML Model: {model_status}</p>
+    <p class="info">
+      <a href="/docs">API Documentation (Swagger)</a><br>
+      <a href="/health">Health Check (JSON)</a>
+    </p>
+  </div>
+</body>
+</html>"""
+
     # ── Health check ──
     @app.get("/health", tags=["System"])
     async def health_check():
@@ -135,3 +174,4 @@ def get_ml_predictor() -> MLPredictor | None:
 
 # ── Module-level app instance for `uvicorn app.main:app` ──
 app = create_app()
+
