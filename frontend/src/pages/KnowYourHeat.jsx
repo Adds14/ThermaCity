@@ -106,7 +106,7 @@ export default function KnowYourHeat() {
                   <button type="submit" className="btn-strike">→</button>
                 </form>
                 <button type="button" className="btn-location" onClick={handleUseLocation}>
-                  <MapPin size={14} /> USE MY LOCATION
+                  <MapPin size={14} /> TRY A DEMO LOCATION
                 </button>
               </div>
 

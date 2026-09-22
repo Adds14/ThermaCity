@@ -179,7 +179,7 @@ When a municipal officer or citizen opens ThermaCity, they see:
 | View | What It Shows | Who Uses It |
 |------|---------------|-------------|
 | **Editorial Landing Page** | An educational narrative explaining the Urban Heat Island effect and the ThermaCity methodology. | Public / Students |
-| **Know Your Heat Dashboard** | Personalised dashboard for any searched location, comparing its temperature, vegetation, and built-up density against the Pune average using data bars. | Citizens |
+| **Know Your Heat Dashboard** | Personalised dashboard for any searched location, comparing its temperature, vegetation, and built-up density against the Pune average using data bars. Includes a "Try a Demo Location" button (Shivajinagar) for quick exploration. | Citizens |
 | **Compare Areas** | Side-by-side comparative analysis of two different neighbourhoods (e.g. Aundh vs. Hadapsar). | Citizens / Planners |
 | **Ward-First Navigation** | 41 official PMC wards with aggregate heat scores. Click a ward to drill down into its 100m blocks. | Disaster management |
 | **City-wide Heat Risk Map** | Every 100m block colour-coded by vulnerability, bounded to Pune with a clean white basemap. | Disaster management |
